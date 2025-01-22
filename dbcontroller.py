@@ -1,4 +1,4 @@
-from PyQt5.QtSql import QSqlDatabase
+from PyQt5.QtSql import QSqlDatabase, QSqlQuery
 
 class DatabaseController:
     def __init__(self, db_path='data.db'):
@@ -14,5 +14,14 @@ class DatabaseController:
         return self.db
 
     def execute_query(self, query):
-        # Add method to execute queries and return results
-        pass
+        sql_query = QSqlQuery(self.db)
+        if not sql_query.exec(query):
+            print(f"Error executing query: {sql_query.lastError().text()}")
+            return None
+        
+        # Collect and return all results
+        results = []
+        while sql_query.next():
+            results.append([sql_query.value(i) for i in range(sql_query.record().count())])
+        
+        return results
