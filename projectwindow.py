@@ -23,8 +23,8 @@ class ProjectWindow(QMainWindow):
 
         # get access to json
         from JSONHandler import json_handler
-        self.header_style = json_handler.get_css("Header")
-        self.paragraph_style = json_handler.get_css("Paragraph")
+        styles = {"Header": json_handler.get_css("Header"),
+                  "Paragraph": json_handler.get_css("Paragraph")}
         icon_button_style = json_handler.get_css("icon_button")
 
         # query data to set up page
@@ -37,18 +37,19 @@ class ProjectWindow(QMainWindow):
         self.vbox.setContentsMargins(10, 10, 10, 10)  # Sets the margins around the layout
 
          # dynamically add each field
+        from fieldwidget import FieldWidget
         for (_, _, field_type, content) in fields:
-            if field_type == 'Header':
-                self.new_header(content)
-            elif field_type == 'Paragraph':
-                self.new_paragraph(content)
+            field = FieldWidget(field_type, content)
+            field.editClicked.connect(lambda: print(f"Edit clicked for {content}"))
+            self.vbox.addWidget(field)
         
         # add a new field button
-        add_button = QPushButton("") # Set the icon (using a plus icon from Qt)
+        add_button = QPushButton("")
         add_button.setIcon(QIcon("plus_button.png"))
         add_button.setMinimumSize(QSize(45, 45))
         add_button.setIconSize(QSize(45, 45))
         add_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        add_button.setFlat(True)
         add_button.setStyleSheet(icon_button_style)
         add_button.clicked.connect(self.new_field)
         # Create a layout for the button
@@ -71,22 +72,22 @@ class ProjectWindow(QMainWindow):
         self.setCentralWidget(container)
         self.setGeometry(100, 100, 800, 600)
     
-    def new_header(self, content):
-        header = QLabel(content)
-        header.setStyleSheet("""
-            QLabel {
-                font-family: Arial;
-                font-size: 40px;
-                font-weight: bold;
-                color: blue;
-            }
-        """)
-        self.vbox.addWidget(header)
-    
+    def set_up_field(self, style, content):
+        widget = QLabel(content)
+        widget.setStyleSheet(style)
+        widget.setWordWrap(True)
+
     def new_paragraph(self, content):
         paragraph = QLabel(content)
         paragraph.setStyleSheet(self.paragraph_style)
         paragraph.setWordWrap(True)
+        # Create a horizontal layout for the label and button
+        header_layout = QHBoxLayout()
+        header_layout.addWidget(paragraph)
+        header_layout.addWidget(self.edit_button)
+        header_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins
+        header_layout.setSpacing(5)  # Set spacing between label and button
+
         self.vbox.addWidget(paragraph)
     
     def new_field(self):
