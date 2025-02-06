@@ -36,11 +36,11 @@ class ProjectWindow(QMainWindow):
         self.vbox.setSpacing(10)  # Sets the space between widgets
         self.vbox.setContentsMargins(10, 10, 10, 10)  # Sets the margins around the layout
 
-         # dynamically add each field
+        # dynamically add each field
         from fieldwidget import FieldWidget
         for (_, _, field_type, content) in fields:
             field = FieldWidget(field_type, content)
-            field.editClicked.connect(lambda: print(f"Edit clicked for {content}"))
+            field.editClicked.connect(lambda *_, f=field_type, v=content: self.open_field_editor(f, v))
             self.vbox.addWidget(field)
         
         # add a new field button
@@ -51,7 +51,7 @@ class ProjectWindow(QMainWindow):
         add_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         add_button.setFlat(True)
         add_button.setStyleSheet(icon_button_style)
-        add_button.clicked.connect(self.new_field)
+        add_button.clicked.connect(lambda: self.open_field_editor("", ""))
         # Create a layout for the button
         hbox = QHBoxLayout()
         #hbox.addStretch(1)  # Add stretchable space before the button
@@ -90,7 +90,7 @@ class ProjectWindow(QMainWindow):
 
         self.vbox.addWidget(paragraph)
     
-    def new_field(self):
+    def open_field_editor(self, field_type, field_content):
         from fieldedit import FieldEditor
-        self.edit_window = FieldEditor()
+        self.edit_window = FieldEditor(field_type, field_content)
         self.edit_window.show()

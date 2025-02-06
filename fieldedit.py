@@ -15,8 +15,8 @@ class FieldEditor(QDialog):
         self.field_content = field_content
 
         self.widget_dict = {
-            'Header': QLineEdit,
-            'Paragraph': QTextEdit
+            'Header': QLineEdit(),
+            'Paragraph': QTextEdit()
         }
 
         # configure window details
