@@ -20,6 +20,8 @@ class DatabaseController:
             sql_query.addBindValue(val)
         if not sql_query.exec_():
             print(f"Error executing query: {sql_query.lastError().text()}")
+            print("Attempted query:", query)
+            print("Attempted paramters:", params)
             return None
         
         # Collect and return all results

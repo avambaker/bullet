@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QLineEdit, QFormLayout, QVBoxLayout, QLabel, QAction, QDialog, QDialogButtonBox, QMessageBox, QComboBox, QTextEdit
+from PyQt5.QtWidgets import QWidget, QFormLayout, QVBoxLayout, QLabel, QStackedWidget, QDialog, QDialogButtonBox, QMessageBox, QComboBox, QTextEdit
 from datetime import date
 import pandas as pd
 import json
@@ -13,20 +13,25 @@ class FieldCreator(QDialog):
         self.setWindowTitle("New Field")
         self.setGeometry(100, 100, 300, 400)
 
-        self.layout = QFormLayout()
-        self.layout.setSpacing(20)
-
         self.widget_dict = {
+            '': QWidget(),
             'Header': QTextEdit(),
             'Paragraph': QTextEdit()
         }
 
         self.type_box = QComboBox()
-        self.type_box.addItem("")
         for field in self.widget_dict.keys():
             self.type_box.addItem(field)
         self.type_box.currentTextChanged.connect(self.createInput)
-        self.layout.addRow(QLabel("Field Type:"), self.type_box)
+
+        form_layout = QFormLayout()
+        form_layout.setSpacing(20)
+        form_layout.addRow(QLabel("Field Type:"), self.type_box)
+
+        self.stacked_widget = QStackedWidget()
+        # add all the input widgets
+        for key in self.widget_dict.keys():
+            self.stacked_widget.addWidget(self.widget_dict[key])
  
         # creating a dialog button for ok and cancel
         self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -36,27 +41,37 @@ class FieldCreator(QDialog):
         self.buttonBox.rejected.connect(self.reject)
  
         # set a vertical layout with widgets and dialog buttons
-        mainLayout = QVBoxLayout()
-        mainLayout.addLayout(self.layout)
-        mainLayout.addWidget(self.buttonBox)
-        self.setLayout(mainLayout)
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(form_layout)
+        main_layout.addWidget(self.stacked_widget)
+        main_layout.addWidget(self.buttonBox)
+        self.setLayout(main_layout)
 
         self.last_field = self.type_box.currentText()
 
         self.show()
 
     def createInput(self):
+        """Show/hide widgets based on the selected field type"""
         field_type = self.type_box.currentText()
+
         if field_type != self.last_field:
-            if self.last_field in self.widget_dict:
-                self.widget_dict[self.last_field].hide()
-                self.layout.removeWidget(self.widget_dict[self.last_field])
+            if self.last_field != "":
                 self.widget_dict[self.last_field].clear()
-            if field_type in self.widget_dict:
-                self.widget_dict[field_type].show()
-                self.layout.addRow(self.widget_dict[field_type])
+            self.stacked_widget.setCurrentWidget(self.widget_dict[field_type])
             self.last_field = field_type
-        
+    
+    def getHeaderText(self):
+        return self.stacked_widget.currentWidget().toPlainText()
+
+    def getParagraphText(self):
+        return self.stacked_widget.currentWidget().toPlainText()
 
     def getInfo(self):
-        return
+        method_dict = {
+            'Header': self.getHeaderText,
+            'Paragraph': self.getParagraphText
+        }
+        self.f_type = self.type_box.currentText()
+        self.f_content = method_dict[self.f_type]()
+        super().accept()

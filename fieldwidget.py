@@ -20,7 +20,7 @@ class FieldWidget(QWidget):
         
         # Create QPushButton for edit icon
         self.edit_button = QPushButton()
-        self.edit_button.setIcon(QIcon("pencil_icon.png"))  # Set your icon path
+        self.edit_button.setIcon(QIcon("icons/pencil.png"))  # Set your icon path
         self.edit_button.setMinimumSize(QSize(10, 10))
         self.edit_button.setIconSize(QSize(10, 10))
         self.edit_button.setFlat(True)  # Make button background invisible

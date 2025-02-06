@@ -32,63 +32,44 @@ class ProjectWindow(QMainWindow):
         title = self.db_controller.execute_query("SELECT title FROM projects WHERE project_id = ?", [self.id])[0][0]
 
         # create a layout
-        self.vbox = QVBoxLayout() # create vertical layout
-        self.vbox.setSpacing(10)  # Sets the space between widgets
-        self.vbox.setContentsMargins(10, 10, 10, 10)  # Sets the margins around the layout
+        self.fields_layout = QVBoxLayout() # create vertical layout
+        self.fields_layout.setSpacing(10)  # Sets the space between widgets
+        self.fields_layout.setContentsMargins(10, 10, 10, 10)  # Sets the margins around the layout
 
         # dynamically add each field
         from fieldwidget import FieldWidget
         for (field_id, project_id, field_type, content) in fields:
-            field = FieldWidget(field_type, content)
-            field.editClicked.connect(lambda *_, fw=field, fid=field_id, pid=project_id, f=field_type, v=content: 
-                              self.open_field_editor(fw, fid, pid, f, v))
-            self.vbox.addWidget(field)
+            self.put_field_on_window(field_id, project_id, field_type, content)
         
         # add a new field button
         add_button = QPushButton("")
-        add_button.setIcon(QIcon("plus_button.png"))
+        add_button.setIcon(QIcon("icons/plus.png"))
         add_button.setMinimumSize(QSize(45, 45))
         add_button.setIconSize(QSize(45, 45))
         add_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         add_button.setFlat(True)
         add_button.setStyleSheet(icon_button_style)
         add_button.clicked.connect(lambda: self.open_field_creator())
-        # Create a layout for the button
-        hbox = QHBoxLayout()
-        #hbox.addStretch(1)  # Add stretchable space before the button
-        hbox.addWidget(add_button)
-        #hbox.addStretch(1)
-        self.vbox.addLayout(hbox)
-        
+
+        # Create a layout for button area
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(add_button)
+
+        # create an overall layout
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(self.fields_layout)
+        main_layout.addLayout(button_layout)
         # add a spacer so widgets appear at the top
-        self.vbox.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding))
+        main_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding))
 
         # set layout in a container
         container = QWidget(self)
-        container.setLayout(self.vbox)
+        container.setLayout(main_layout)
 
         # set up window
         self.setWindowTitle(title)
         self.setCentralWidget(container)
         self.setGeometry(100, 100, 800, 600)
-    
-    def set_up_field(self, style, content):
-        widget = QLabel(content)
-        widget.setStyleSheet(style)
-        widget.setWordWrap(True)
-
-    def new_paragraph(self, content):
-        paragraph = QLabel(content)
-        paragraph.setStyleSheet(self.paragraph_style)
-        paragraph.setWordWrap(True)
-        # Create a horizontal layout for the label and button
-        header_layout = QHBoxLayout()
-        header_layout.addWidget(paragraph)
-        header_layout.addWidget(self.edit_button)
-        header_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins
-        header_layout.setSpacing(5)  # Set spacing between label and button
-
-        self.vbox.addWidget(paragraph)
     
     def open_field_editor(self, field_widget, field_id, project_id, field_type, field_content):
         from fieldedit import FieldEditor
@@ -101,5 +82,19 @@ class ProjectWindow(QMainWindow):
     
     def open_field_creator(self):
         from fieldcreate import FieldCreator
-        self.create_window = FieldCreator()
-        self.create_window.show()
+        create_window = FieldCreator()
+        if create_window.exec_():
+            if create_window.f_type != "" and create_window.f_content != "":
+                insert_query = "INSERT INTO project_fields (project_id, field_type, content) VALUES (?, ?, ?)"
+                params = [self.id, create_window.f_type, create_window.f_content]
+                self.db_controller.execute_query(insert_query, params)
+                field_id_query = "SELECT field_id FROM project_fields WHERE project_id = ? AND field_type = ? AND content = ?"
+                field_id = self.db_controller.execute_query(field_id_query, params)[0][0]
+                self.put_field_on_window(field_id, *params)
+    
+    def put_field_on_window(self, field_id, project_id, field_type, content):
+        from fieldwidget import FieldWidget
+        field = FieldWidget(field_type, content)
+        field.editClicked.connect(lambda *_, fw=field, fid=field_id, pid=project_id, f=field_type, v=content: 
+                            self.open_field_editor(fw, fid, pid, f, v))
+        self.fields_layout.addWidget(field)
