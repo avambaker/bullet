@@ -16,7 +16,6 @@ class FieldWidget(QWidget):
         self.label = QLabel(content)
         self.label.setStyleSheet(styles[field_type])
         self.label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        print(styles[field_type])
         self.label.setWordWrap(True)
         
         # Create QPushButton for edit icon

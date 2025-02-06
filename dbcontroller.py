@@ -13,9 +13,12 @@ class DatabaseController:
                 raise Exception(f"Database Error: {self.db.lastError().text()}")
         return self.db
 
-    def execute_query(self, query):
+    def execute_query(self, query, params):
         sql_query = QSqlQuery(self.db)
-        if not sql_query.exec(query):
+        sql_query.prepare(query)
+        for val in params:
+            sql_query.addBindValue(val)
+        if not sql_query.exec_():
             print(f"Error executing query: {sql_query.lastError().text()}")
             return None
         

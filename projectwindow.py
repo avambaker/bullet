@@ -28,8 +28,8 @@ class ProjectWindow(QMainWindow):
         icon_button_style = json_handler.get_css("icon_button")
 
         # query data to set up page
-        fields = self.db_controller.execute_query(f"SELECT * FROM project_fields WHERE project_id = {self.id} ORDER BY field_id ASC")
-        title = self.db_controller.execute_query(f"SELECT title FROM projects WHERE project_id = {self.id}")[0][0]
+        fields = self.db_controller.execute_query("SELECT * FROM project_fields WHERE project_id = ? ORDER BY field_id ASC", [self.id])
+        title = self.db_controller.execute_query("SELECT title FROM projects WHERE project_id = ?", [self.id])[0][0]
 
         # create a layout
         self.vbox = QVBoxLayout() # create vertical layout
@@ -38,9 +38,11 @@ class ProjectWindow(QMainWindow):
 
         # dynamically add each field
         from fieldwidget import FieldWidget
-        for (_, _, field_type, content) in fields:
+        for (field_id, project_id, field_type, content) in fields:
             field = FieldWidget(field_type, content)
-            field.editClicked.connect(lambda *_, f=field_type, v=content: self.open_field_editor(f, v))
+            field.editClicked.connect(lambda *_, fw=field, fid=field_id, pid=project_id, f=field_type, v=content: 
+                              self.open_field_editor(fw, fid, pid, f, v))
+            #field.editClicked.connect(lambda *_, fid = field_id, pid = project_id, f=field_type, v=content: self.open_field_editor(fid, pid, f, v))
             self.vbox.addWidget(field)
         
         # add a new field button
@@ -65,7 +67,6 @@ class ProjectWindow(QMainWindow):
         # set layout in a container
         container = QWidget(self)
         container.setLayout(self.vbox)
-        
 
         # set up window
         self.setWindowTitle(title)
@@ -90,7 +91,16 @@ class ProjectWindow(QMainWindow):
 
         self.vbox.addWidget(paragraph)
     
-    def open_field_editor(self, field_type, field_content):
+    def open_field_editor(self, field_widget, field_id, project_id, field_type, field_content):
         from fieldedit import FieldEditor
-        self.edit_window = FieldEditor(field_type, field_content)
-        self.edit_window.show()
+        edit_window = FieldEditor(field_type, field_content)
+        if edit_window.exec_():  # If user clicked Save
+            new_value = edit_window.new_val
+            if new_value is not None and new_value != field_content:
+                self.db_controller.execute_query("UPDATE project_fields SET content = ? WHERE field_id = ? AND project_id = ?", [new_value, field_id, project_id])
+                field_widget.setText(new_value)
+    
+    def open_field_creator(self):
+        from fieldcreate import FieldCreator
+        self.create_window = FieldCreator()
+        self.create_window.show()

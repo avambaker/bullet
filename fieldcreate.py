@@ -5,35 +5,22 @@ import json
 from pathlib import Path
 
 
-class FieldEditor(QDialog):
-    def __init__(self, field_type, field_content, parent = None):
+class FieldCreator(QDialog):
+    def __init__(self, parent = None):
         """Create a form that creates or edits a row from user input"""
         super().__init__(parent)
 
-        # set up variables
-        self.field_type = field_type
-        self.field_content = field_content
-
-        self.widget_dict = {
-            'Header': QLineEdit(),
-            'Paragraph': QTextEdit()
-        }
-
-        self.method_dict = {
-            'Header': self.getHeaderText,
-            'Paragraph': self.getParagraphText
-        }
-
-        # configure window details
-        self.setWindowTitle(field_type)
+        self.setWindowTitle("New Field")
         self.setGeometry(100, 100, 300, 400)
 
         layout = QFormLayout()
         layout.setSpacing(20)
 
-        self.editor = self.widget_dict.get(self.field_type)
-        self.editor.setText(self.field_content)
-        layout.addRow(QLabel(f"Edit {field_type}:"), self.editor)
+        type_box = QComboBox()
+        type_box.addItem("")
+        type_box.addItem("Header")
+        type_box.addItem("Paragraph")
+        layout.addRow(QLabel("Field Type:"), type_box)
  
         # creating a dialog button for ok and cancel
         self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -51,11 +38,4 @@ class FieldEditor(QDialog):
         self.show()
 
     def getInfo(self):
-        self.new_val = self.method_dict[self.field_type]()
-        super().accept()
-    
-    def getHeaderText(self):
-        return self.editor.text()
-
-    def getParagraphText(self):
-        return self.editor.toPlainText()
+        return
