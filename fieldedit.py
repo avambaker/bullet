@@ -15,7 +15,7 @@ class FieldEditor(QDialog):
         self.field_content = field_content
 
         self.widget_dict = {
-            'Header': QLineEdit(),
+            'Header': QTextEdit(),
             'Paragraph': QTextEdit()
         }
 
@@ -28,12 +28,8 @@ class FieldEditor(QDialog):
         self.setWindowTitle(field_type)
         self.setGeometry(100, 100, 300, 400)
 
-        layout = QFormLayout()
-        layout.setSpacing(20)
-
         self.editor = self.widget_dict.get(self.field_type)
         self.editor.setText(self.field_content)
-        layout.addRow(QLabel(f"Edit {field_type}:"), self.editor)
  
         # creating a dialog button for ok and cancel
         self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -41,12 +37,14 @@ class FieldEditor(QDialog):
         # connect to methods on button click
         self.buttonBox.accepted.connect(self.getInfo)
         self.buttonBox.rejected.connect(self.reject)
- 
+
         # set a vertical layout with widgets and dialog buttons
-        mainLayout = QVBoxLayout()
-        mainLayout.addLayout(layout)
-        mainLayout.addWidget(self.buttonBox)
-        self.setLayout(mainLayout)
+        layout = QVBoxLayout()
+        layout.setSpacing(20)
+        layout.addWidget(QLabel(f"Edit {field_type}:"))
+        layout.addWidget(self.editor)
+        layout.addWidget(self.buttonBox)
+        self.setLayout(layout)
 
         self.show()
 
@@ -55,7 +53,7 @@ class FieldEditor(QDialog):
         super().accept()
     
     def getHeaderText(self):
-        return self.editor.text()
+        return self.editor.toPlainText()
 
     def getParagraphText(self):
         return self.editor.toPlainText()

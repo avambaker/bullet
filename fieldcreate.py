@@ -13,14 +13,20 @@ class FieldCreator(QDialog):
         self.setWindowTitle("New Field")
         self.setGeometry(100, 100, 300, 400)
 
-        layout = QFormLayout()
-        layout.setSpacing(20)
+        self.layout = QFormLayout()
+        self.layout.setSpacing(20)
 
-        type_box = QComboBox()
-        type_box.addItem("")
-        type_box.addItem("Header")
-        type_box.addItem("Paragraph")
-        layout.addRow(QLabel("Field Type:"), type_box)
+        self.widget_dict = {
+            'Header': QTextEdit(),
+            'Paragraph': QTextEdit()
+        }
+
+        self.type_box = QComboBox()
+        self.type_box.addItem("")
+        for field in self.widget_dict.keys():
+            self.type_box.addItem(field)
+        self.type_box.currentTextChanged.connect(self.createInput)
+        self.layout.addRow(QLabel("Field Type:"), self.type_box)
  
         # creating a dialog button for ok and cancel
         self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -31,11 +37,26 @@ class FieldCreator(QDialog):
  
         # set a vertical layout with widgets and dialog buttons
         mainLayout = QVBoxLayout()
-        mainLayout.addLayout(layout)
+        mainLayout.addLayout(self.layout)
         mainLayout.addWidget(self.buttonBox)
         self.setLayout(mainLayout)
 
+        self.last_field = self.type_box.currentText()
+
         self.show()
+
+    def createInput(self):
+        field_type = self.type_box.currentText()
+        if field_type != self.last_field:
+            if self.last_field in self.widget_dict:
+                self.widget_dict[self.last_field].hide()
+                self.layout.removeWidget(self.widget_dict[self.last_field])
+                self.widget_dict[self.last_field].clear()
+            if field_type in self.widget_dict:
+                self.widget_dict[field_type].show()
+                self.layout.addRow(self.widget_dict[field_type])
+            self.last_field = field_type
+        
 
     def getInfo(self):
         return

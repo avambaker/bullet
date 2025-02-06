@@ -42,7 +42,6 @@ class ProjectWindow(QMainWindow):
             field = FieldWidget(field_type, content)
             field.editClicked.connect(lambda *_, fw=field, fid=field_id, pid=project_id, f=field_type, v=content: 
                               self.open_field_editor(fw, fid, pid, f, v))
-            #field.editClicked.connect(lambda *_, fid = field_id, pid = project_id, f=field_type, v=content: self.open_field_editor(fid, pid, f, v))
             self.vbox.addWidget(field)
         
         # add a new field button
@@ -53,7 +52,7 @@ class ProjectWindow(QMainWindow):
         add_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         add_button.setFlat(True)
         add_button.setStyleSheet(icon_button_style)
-        add_button.clicked.connect(lambda: self.open_field_editor("", ""))
+        add_button.clicked.connect(lambda: self.open_field_creator())
         # Create a layout for the button
         hbox = QHBoxLayout()
         #hbox.addStretch(1)  # Add stretchable space before the button
