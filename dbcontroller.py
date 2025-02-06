@@ -13,7 +13,7 @@ class DatabaseController:
                 raise Exception(f"Database Error: {self.db.lastError().text()}")
         return self.db
 
-    def execute_query(self, query, params):
+    def execute_query(self, query, params=[]):
         sql_query = QSqlQuery(self.db)
         sql_query.prepare(query)
         for val in params:

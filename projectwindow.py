@@ -3,7 +3,7 @@
 import os, sys, traceback
 import sqlite3
 
-from PyQt5.QtCore import Qt, QSortFilterProxyModel, QModelIndex, QPoint, QSize
+from PyQt5.QtCore import Qt, pyqtSignal, QModelIndex, QPoint, QSize
 from PyQt5.QtWidgets import QMainWindow, QSpacerItem, QSizePolicy, QWidget, QPushButton, QVBoxLayout, QLabel, QHBoxLayout, QMessageBox, QHeaderView, QAction, QActionGroup, QMenu, QInputDialog, QTableView, QLineEdit
 from PyQt5.QtGui import QIcon
 from PyQt5.QtSql import QSqlDatabase, QSqlTableModel
@@ -13,6 +13,8 @@ from pathlib import Path
 import json
 
 class ProjectWindow(QMainWindow):
+    dataUpdated = pyqtSignal()
+
     def __init__(self, databasecontroller, id = None, parent=None):
         """Build window with task table"""
         super().__init__(parent)
@@ -29,7 +31,23 @@ class ProjectWindow(QMainWindow):
 
         # query data to set up page
         fields = self.db_controller.execute_query("SELECT * FROM project_fields WHERE project_id = ? ORDER BY field_id ASC", [self.id])
-        (_, title, description, deadline) = self.db_controller.execute_query("SELECT * FROM projects WHERE project_id = ?", [self.id])[0]
+        (_, self.title, description, deadline) = self.db_controller.execute_query("SELECT * FROM projects WHERE project_id = ?", [self.id])[0]
+
+        # Menu bar
+        menu_bar = self.menuBar()
+        project_menu = menu_bar.addMenu("Project")
+        rename_action = QAction("Rename", self)
+        edit_description_action = QAction("Edit Description", self)
+        edit_deadline_action = QAction("Edit Deadline", self)
+        delete_action = QAction("Delete Project", self)
+        project_menu.addAction(rename_action)
+        project_menu.addAction(edit_description_action)
+        project_menu.addAction(edit_deadline_action)
+        project_menu.addAction(delete_action)
+        rename_action.triggered.connect(self.rename_project)
+        edit_description_action.triggered.connect(lambda: print("Edit Description clicked"))
+        edit_deadline_action.triggered.connect(lambda: print("Edit Deadline clicked"))
+        delete_action.triggered.connect(self.delete_project)
 
         # create a layout
         self.fields_layout = QVBoxLayout() # create vertical layout
@@ -49,7 +67,7 @@ class ProjectWindow(QMainWindow):
         add_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         add_button.setFlat(True)
         add_button.setStyleSheet(icon_button_style)
-        add_button.clicked.connect(lambda: self.openFieldCreator())
+        add_button.clicked.connect(self.openFieldCreator)
 
         # create description label
         description_label = QLabel(description)
@@ -81,9 +99,10 @@ class ProjectWindow(QMainWindow):
         container.setLayout(main_layout)
 
         # set up window
-        self.setWindowTitle(title)
+        self.setWindowTitle(self.title)
         self.setCentralWidget(container)
         self.setGeometry(100, 100, 800, 600)
+        self.setMenuBar(menu_bar)
     
     def openFieldEditor(self, field_widget, field_id, project_id, field_type, field_content):
         from fieldedit import FieldEditor
@@ -122,3 +141,23 @@ class ProjectWindow(QMainWindow):
         params = [field_id, project_id]
         self.db_controller.execute_query(query, params)
         return
+    
+    def rename_project(self):
+        new_name, input = QInputDialog.getText(None, f"Rename {self.title}", "New Name:")
+        if input and new_name != "" and new_name != self.title:
+            self.db_controller.execute_query("UPDATE projects SET title = ? WHERE project_id = ?", [new_name, self.id])
+            self.setWindowTitle(new_name)
+            self.dataUpdated.emit()
+    
+    def delete_project(self):
+        reply = QMessageBox.question(self, f"Delete {self.title}", 
+            "Are you sure you want to delete this project?", 
+            QMessageBox.Yes | QMessageBox.No, 
+            QMessageBox.No)
+
+        # Check the user's response
+        if reply == QMessageBox.Yes:
+            # Proceed with deleting the project
+            self.db_controller.execute_query("DELETE FROM projects WHERE project_id = ?", [self.id])
+            self.dataUpdated.emit()
+            self.close()

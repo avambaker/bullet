@@ -3,8 +3,8 @@
 import os, sys, traceback
 import sqlite3
 
-from PyQt5.QtCore import Qt, QSortFilterProxyModel, QModelIndex, QPoint
-from PyQt5.QtWidgets import QMainWindow, QAbstractItemView, QToolButton, QWidget, QHBoxLayout, QFileDialog, QVBoxLayout, QLabel, QToolBar, QMessageBox, QHeaderView, QAction, QActionGroup, QMenu, QInputDialog, QTableView, QLineEdit
+from PyQt5.QtCore import Qt, QSortFilterProxyModel, QModelIndex, QPoint, QSize
+from PyQt5.QtWidgets import QMainWindow, QAbstractItemView, QWidget, QHBoxLayout, QFileDialog, QVBoxLayout, QLabel, QToolBar, QMessageBox, QHeaderView, QAction, QActionGroup, QMenu, QInputDialog, QTableView, QLineEdit
 from PyQt5.QtGui import QCursor, QIcon
 from PyQt5.QtSql import QSqlDatabase, QSqlTableModel
 import pandas as pd
@@ -59,26 +59,32 @@ class MainWindow(QMainWindow):
         self.view.hideColumn(0) # hide the project id's
 
         # create menu bar widgets
-        new_action = QAction("New", self)
+        new_action = QAction(QIcon("icons/plus.png"), "New", self)
         new_action.triggered.connect(self.new_project)
-        view_action = QAction("View", self)
-        settings_action = QAction("Settings", self)
-        search_label = QLabel("Search: ")
-        self.search_bar = QLineEdit()
 
-        # add actions and widgets to a menu bar
-        menubar = QToolBar()
-        for action in [new_action, view_action, settings_action]:
-            menubar.addAction(action)
+        refresh_action = QAction(QIcon("icons/database_refresh.png"), "Refresh", self)
+        refresh_action.triggered.connect(self.refreshTable)
+
+        search_label = QLabel("Search: ")
+        self.search_bar = QLineEdit(self)
+
+        # set up toolbar
+        toolbar = QToolBar()
+        toolbar.setIconSize(QSize(13, 13))
+
+        # add actions and widgets to a tool bar
+        for action in [new_action, refresh_action]:
+            toolbar.addAction(action)
+        toolbar.addSeparator()
         for widget in [search_label, self.search_bar]:
-            menubar.addWidget(widget)
+            toolbar.addWidget(widget)
         
         # connect the search bar to the proxy model
         self.search_bar.textChanged.connect(self.proxy.setFilterFixedString)
 
-        # vertically stack search bar with menubar and view
+        # vertically stack search bar with toolbar and view
         vbox = QVBoxLayout()
-        vbox.addWidget(menubar)
+        vbox.addWidget(toolbar)
         vbox.addWidget(self.view)
         vbox.setContentsMargins(0,0,0,0)
         vbox.setSpacing(0)
@@ -88,6 +94,12 @@ class MainWindow(QMainWindow):
         container.setLayout(vbox)
         self.setCentralWidget(container)
         self.model.layoutChanged.emit()
+
+        # create menu bar
+        menu = self.menuBar()
+        view_menu = menu.addMenu("View")
+        settings_menu = menu.addMenu("Settings")
+
         self.showMaximized()
     
     def refreshTable(self):
@@ -127,6 +139,7 @@ class MainWindow(QMainWindow):
         from projectwindow import ProjectWindow
         # Instantiate ProjectWindow and pass project_id and db_controller
         self.project_window = ProjectWindow(self.db_controller, project_id)
+        self.project_window.dataUpdated.connect(self.refreshTable)
         self.project_window.show()
     
     def new_project(self):
