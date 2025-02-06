@@ -23,13 +23,13 @@ class ProjectWindow(QMainWindow):
 
         # get access to json
         from JSONHandler import json_handler
-        styles = {"Header": json_handler.get_css("Header"),
-                  "Paragraph": json_handler.get_css("Paragraph")}
+        styles = {"Description": json_handler.get_css("Description"),
+                  "Main Deadline": json_handler.get_css("Main Deadline")}
         icon_button_style = json_handler.get_css("icon_button")
 
         # query data to set up page
         fields = self.db_controller.execute_query("SELECT * FROM project_fields WHERE project_id = ? ORDER BY field_id ASC", [self.id])
-        title = self.db_controller.execute_query("SELECT title FROM projects WHERE project_id = ?", [self.id])[0][0]
+        (_, title, description, deadline) = self.db_controller.execute_query("SELECT * FROM projects WHERE project_id = ?", [self.id])[0]
 
         # create a layout
         self.fields_layout = QVBoxLayout() # create vertical layout
@@ -51,12 +51,26 @@ class ProjectWindow(QMainWindow):
         add_button.setStyleSheet(icon_button_style)
         add_button.clicked.connect(lambda: self.openFieldCreator())
 
+        # create description label
+        description_label = QLabel(description)
+        description_label.setStyleSheet(styles["Description"])
+        description_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        description_label.setWordWrap(True)
+
+        # create deadline widget
+        project_deadline_label = QLabel(deadline)
+        project_deadline_label.setStyleSheet(styles["Main Deadline"])
+        project_deadline_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        project_deadline_label.setWordWrap(True)
+
         # Create a layout for button area
         button_layout = QHBoxLayout()
         button_layout.addWidget(add_button)
 
         # create an overall layout
         main_layout = QVBoxLayout()
+        main_layout.addWidget(description_label)
+        main_layout.addWidget(project_deadline_label)
         main_layout.addLayout(self.fields_layout)
         main_layout.addLayout(button_layout)
         # add a spacer so widgets appear at the top

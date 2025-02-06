@@ -60,6 +60,7 @@ class MainWindow(QMainWindow):
 
         # create menu bar widgets
         new_action = QAction("New", self)
+        new_action.triggered.connect(self.new_project)
         view_action = QAction("View", self)
         settings_action = QAction("Settings", self)
         search_label = QLabel("Search: ")
@@ -89,7 +90,7 @@ class MainWindow(QMainWindow):
         self.model.layoutChanged.emit()
         self.showMaximized()
     
-    def refresh_data(self):
+    def refreshTable(self):
         self.model.select()
 
     def contextMenuEvent(self, event):
@@ -127,3 +128,9 @@ class MainWindow(QMainWindow):
         # Instantiate ProjectWindow and pass project_id and db_controller
         self.project_window = ProjectWindow(self.db_controller, project_id)
         self.project_window.show()
+    
+    def new_project(self):
+        project_name, input = QInputDialog.getText(None, "New Project", "Project Title:")
+        if input and project_name != "":
+            self.db_controller.execute_query("INSERT INTO projects (title) VALUES (?)", [project_name])
+            self.refreshTable()
