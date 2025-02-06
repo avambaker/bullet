@@ -4,6 +4,7 @@ from PyQt5.QtGui import QIcon
 
 class FieldWidget(QWidget):
     editClicked = pyqtSignal()  # Custom signal for edit action
+    deleteClicked = pyqtSignal()  # Custom signal for edit action
 
     def __init__(self, field_type, content, parent=None):
         super().__init__(parent)
@@ -18,28 +19,30 @@ class FieldWidget(QWidget):
         self.label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.label.setWordWrap(True)
         
-        # Create QPushButton for edit icon
-        self.edit_button = QPushButton()
-        self.edit_button.setIcon(QIcon("icons/pencil.png"))  # Set your icon path
-        self.edit_button.setMinimumSize(QSize(10, 10))
-        self.edit_button.setIconSize(QSize(10, 10))
-        self.edit_button.setFlat(True)  # Make button background invisible
-        self.edit_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.edit_button.setFlat(True)
+        # Create QPushButtons for editing and delete
+        self.edit_button = self.create_button("icons/pencil.png")
+        self.delete_button = self.create_button("icons/delete.png")
         
-        # Connect the button's clicked signal
+        # Connect the buttons' clicked signal
         self.edit_button.clicked.connect(self.editClicked.emit)
+        self.delete_button.clicked.connect(self.deleteClicked.emit)
 
         # Create layout
         layout = QHBoxLayout()
-        layout.addWidget(self.label)
+        layout.addWidget(self.label, stretch=2)
         layout.addStretch()  # Push the button to the right
         layout.addWidget(self.edit_button)
+        layout.addWidget(self.delete_button)
         layout.setContentsMargins(0, 0, 0, 0)
-        # Set stretch factors
-        layout.setStretch(0, 1)  # Stretch label
-        layout.setStretch(1, 0)  # No stretch for button
         self.setLayout(layout)
+    
+    def create_button(self, icon_path):
+        button = QPushButton()
+        button.setIcon(QIcon(icon_path))  # Set your icon path
+        button.setFixedSize(QSize(30, 30))
+        button.setIconSize(QSize(10, 10))
+        button.setFlat(True)  # Make button background invisible
+        return button
 
     def setText(self, text):
         """Update the label text."""
