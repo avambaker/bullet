@@ -14,10 +14,9 @@ cursor = conn.cursor()
 #str_date = date.strftime("%a %m/%d/%Y %I:%M %p")
 
 queries = ["""
-    SELECT t.task_id, t.title, t.completed, t.deadline
+    SELECT pw.widget_id, pw.widget_type
     FROM project_widgets pw
-    LEFT JOIN tasks t ON pw.widget_id = t.task_id
-    WHERE pw.project_id = ? AND pw.widget_type = 'tasks'
+    WHERE pw.project_id = ?
     ORDER BY pw.display_order;
 """
 ]
@@ -36,10 +35,10 @@ for i, query in enumerate(queries):
 conn.commit()
 conn.close()
 
-def add_to_json(query_dict):
+def add_to_json(query, query_name):
     import json
     with open("sqlite_functions.json", "r") as f:
         data = json.load(f)
-    data.update(query_dict)
+    data[query_name] = query
     with open("sqlite_functions.json", "w") as json_file:
         json.dump(data, json_file, indent=4)

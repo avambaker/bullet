@@ -3,12 +3,9 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 
 class TaskWidget(QWidget):
-    def __init__(self, databasecontroller, title, parent=None):
+    def __init__(self, id, title, completed, deadline, parent=None):
         super().__init__(parent)
-
-        self.db_controller = databasecontroller
         
-
         from JSONHandler import json_handler
         self.styles = {"Task Header": json_handler.get_css("Task Header"),
                   "Task Content": json_handler.get_css("Task Content"),
@@ -25,6 +22,8 @@ class TaskWidget(QWidget):
         self.row_layout.setContentsMargins(5, 5, 5, 5)
         
         self.checkbox = QCheckBox()
+        if completed == 1:
+            self.checkbox.setChecked(True)
         self.title_label = QLabel(title) # change this later
         self.title_label.setStyleSheet(self.styles['Task Header'])
         

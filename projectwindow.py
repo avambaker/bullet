@@ -30,8 +30,9 @@ class ProjectWindow(QMainWindow):
         icon_button_style = json_handler.get_css("icon_button")
 
         # query data to set up page
-        fields = self.db_controller.execute_query("SELECT * FROM project_fields WHERE project_id = ? ORDER BY field_id ASC", [self.id])
+        #fields = self.db_controller.execute_query("SELECT * FROM project_fields WHERE project_id = ? ORDER BY field_id ASC", [self.id])
         (_, self.title, self.description, self.deadline) = self.db_controller.execute_query("SELECT * FROM projects WHERE project_id = ?", [self.id])[0]
+        self.get_widgets()
 
         # Menu bar
         menu_bar = self.menuBar()
@@ -55,14 +56,28 @@ class ProjectWindow(QMainWindow):
         delete_action.triggered.connect(self.delete_project)
 
         # create a layout
-        self.fields_layout = QVBoxLayout() # create vertical layout
-        self.fields_layout.setSpacing(15)  # Sets the space between widgets
-        self.fields_layout.setContentsMargins(10, 10, 10, 10)  # Sets the margins around the layout
+        self.widgets_layout = QVBoxLayout() # create vertical layout
+        self.widgets_layout.setSpacing(15)  # Sets the space between widgets
+        self.widgets_layout.setContentsMargins(10, 10, 10, 10)  # Sets the margins around the layout
 
         # dynamically add each field
-        from fieldwidget import FieldWidget
-        for (field_id, project_id, field_type, content) in fields:
-            self.putFieldOnWindow(field_id, project_id, field_type, content)
+        field_index = 0
+        task_index = 0
+        for _, widget_type in self.widget_order:
+            if widget_type == 'fields':
+                try:
+                    self.putFieldOnWindow(*self.fields[field_index])
+                    field_index += 1
+                except Exception as e:
+                    print(f"Error adding field {self.fields[field_index]} to project {self.id}")
+                    print(e)
+            else:
+                try:
+                    self.putTaskOnWindow(*self.tasks[task_index])
+                    task_index += 1
+                except Exception as e:
+                    print(f"Error adding task {self.tasks[task_index]} to project {self.id}")
+                    print(e)
         
         # add a new field button
         add_button = QPushButton("")
@@ -94,7 +109,7 @@ class ProjectWindow(QMainWindow):
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.description_label)
         main_layout.addWidget(self.project_deadline_label)
-        main_layout.addLayout(self.fields_layout)
+        main_layout.addLayout(self.widgets_layout)
         main_layout.addLayout(button_layout)
         # add a spacer so widgets appear at the top
         main_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding))
@@ -115,13 +130,13 @@ class ProjectWindow(QMainWindow):
         self.setGeometry(100, 100, 800, 600)
         self.setMenuBar(menu_bar)
     
-    def openFieldEditor(self, field_widget, field_id, project_id, field_type, field_content):
+    def openFieldEditor(self, field_widget, field_id, field_type, field_content):
         from fieldedit import FieldEditor
         edit_window = FieldEditor(field_type, field_content)
         if edit_window.exec_():  # If user clicked Save
             new_value = edit_window.new_val
             if new_value is not None and new_value != field_content:
-                self.db_controller.execute_query("UPDATE project_fields SET content = ? WHERE field_id = ? AND project_id = ?", [new_value, field_id, project_id])
+                self.db_controller.execute_query("UPDATE fields SET content = ? WHERE field_id = ?", [new_value, field_id])
                 field_widget.setText(new_value)
     
     def openFieldCreator(self):
@@ -129,28 +144,39 @@ class ProjectWindow(QMainWindow):
         create_window = FieldCreator()
         if create_window.exec_():
             if create_window.f_type != "" and create_window.f_content != "":
-                insert_query = "INSERT INTO project_fields (project_id, field_type, content) VALUES (?, ?, ?)"
-                params = [self.id, create_window.f_type, create_window.f_content]
+                insert_query = "INSERT INTO fields (field_type, content) VALUES (?, ?)"
+                params = [create_window.f_type, create_window.f_content]
                 self.db_controller.execute_query(insert_query, params)
-                field_id_query = "SELECT field_id FROM project_fields WHERE project_id = ? AND field_type = ? AND content = ?"
-                field_id = self.db_controller.execute_query(field_id_query, params)[0][0]
+                field_id_query = "SELECT MAX(field_id) FROM fields"
+                field_id = self.db_controller.execute_query(field_id_query)[0][0]
+                pw_query = "INSERT INTO project_widgets (widget_id, widget_type, project_id) VALUES (?, ?, ?)"
+                pw_params = [field_id, 'fields', self.id]
+                self.db_controller.execute_query(pw_query, pw_params)
                 self.putFieldOnWindow(field_id, *params)
+                self.get_widgets()
     
-    def putFieldOnWindow(self, field_id, project_id, field_type, content):
+    def putFieldOnWindow(self, field_id, field_type, content):
         from fieldwidget import FieldWidget
         field = FieldWidget(field_type, content)
-        field.editClicked.connect(lambda *_, fw=field, fid=field_id, pid=project_id, f=field_type, v=content: 
-                            self.openFieldEditor(fw, fid, pid, f, v))
-        field.deleteClicked.connect(lambda *_, fw=field, fid=field_id, pid=project_id: 
-                            self.deleteField(fw, fid, pid))
-        self.fields_layout.addWidget(field)
+        field.editClicked.connect(lambda *_, fw=field, fid=field_id, f=field_type, v=content: 
+                            self.openFieldEditor(fw, fid, f, v))
+        field.deleteClicked.connect(lambda *_, fw=field, fid=field_id: 
+                            self.deleteField(fw, fid))
+        self.widgets_layout.addWidget(field)
     
-    def deleteField(self, field, field_id, project_id):
-        self.fields_layout.removeWidget(field)
+    def putTaskOnWindow(self, task_id, title, completed, deadline):
+        from taskwidget import TaskWidget
+        task_widget = TaskWidget(task_id, title, completed, deadline)
+        self.widgets_layout.addWidget(task_widget)
+    
+    def deleteField(self, field, field_id):
+        self.widgets_layout.removeWidget(field)
         field.deleteLater()
-        query = "DELETE FROM project_fields WHERE field_id = ? AND project_id = ?"
-        params = [field_id, project_id]
-        self.db_controller.execute_query(query, params)
+        self.db_controller.execute_query("DELETE FROM fields WHERE field_id = ?", [field_id])
+        self.db_controller.execute_query("DELETE FROM project_widgets WHERE widget_id = ? AND widget_type = 'fields'", [field_id])
+        # update self.fields and self.widget_order
+        self.fields = [sublist for sublist in self.fields if sublist[0] != field_id]
+        self.widget_order = [sublist for sublist in self.widget_order if sublist[0] != field_id and sublist[1] != 'fields']
         return
     
     def rename_project(self):
@@ -175,7 +201,6 @@ class ProjectWindow(QMainWindow):
         if description_dialog.exec_() == QDialog.Accepted:
             new_description = description_dialog.get_text()
             if new_description != self.description:
-                print(new_description)
                 # Update the project title in the database
                 self.db_controller.execute_query("UPDATE projects SET description = ? WHERE project_id = ?", [new_description, self.id])
                 
@@ -193,7 +218,6 @@ class ProjectWindow(QMainWindow):
         if deadline_dialog.exec_() == QDialog.Accepted:
             new_deadline = deadline_dialog.get_text()
             if new_deadline != self.deadline:
-                print(new_deadline)
                 # Update the project title in the database
                 self.db_controller.execute_query("UPDATE projects SET deadline = ? WHERE project_id = ?", [new_deadline, self.id])
                 
@@ -231,3 +255,9 @@ class ProjectWindow(QMainWindow):
             self.db_controller.execute_query("DELETE FROM projects WHERE project_id = ?", [self.id])
             self.dataUpdated.emit()
             self.close()
+    
+    def get_widgets(self):
+        from JSONHandler import json_handler
+        self.fields = self.db_controller.execute_query(json_handler.get_function("get_fields_by_project"), (self.id,))
+        self.tasks = self.db_controller.execute_query(json_handler.get_function("get_tasks_by_project"), (self.id,))
+        self.widget_order = self.db_controller.execute_query(json_handler.get_function("get_widget_order_by_project"), (self.id,))

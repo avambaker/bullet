@@ -1,4 +1,5 @@
 {
     "get_fields_by_project": "\n    SELECT f.field_id, f.field_type, f.content\n    FROM project_widgets pw\n    LEFT JOIN fields f ON pw.widget_id = f.field_id\n    WHERE pw.project_id = ? AND pw.widget_type = 'fields'\n    ORDER BY pw.display_order;\n",
-    "get_tasks_by_project": "\n    SELECT t.task_id, t.title, t.completed, t.deadline\n    FROM project_widgets pw\n    LEFT JOIN tasks t ON pw.widget_id = t.task_id\n    WHERE pw.project_id = ? AND pw.widget_type = 'tasks'\n    ORDER BY pw.display_order;\n"
+    "get_tasks_by_project": "\n    SELECT t.task_id, t.title, t.completed, t.deadline\n    FROM project_widgets pw\n    LEFT JOIN tasks t ON pw.widget_id = t.task_id\n    WHERE pw.project_id = ? AND pw.widget_type = 'tasks'\n    ORDER BY pw.display_order;\n",
+    "get_widget_order_by_project": "\n    SELECT pw.widget_id, pw.widget_type\n    FROM project_widgets pw\n    WHERE pw.project_id = ?\n    ORDER BY pw.display_order;\n"
 }
