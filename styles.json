@@ -31,5 +31,21 @@
         "font-weight": "normal",
         "color": "black",
         "background-color": "transparent"
+    },
+    "Task Header": {
+        "font-family": "Arial",
+        "font-size": "18px",
+        "font-weight": "bold",
+        "color": "black",
+        "background-color": "transparent"
+    },
+    "Task Content": {
+        "font-family": "Arial",
+        "font-size": "14px",
+        "font-weight": "normal",
+        "color": "black"
+    },
+    "Task Widget": {
+        "background-color": "lightgray"
     }
 }
