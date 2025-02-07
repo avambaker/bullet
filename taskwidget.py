@@ -3,8 +3,11 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 
 class TaskWidget(QWidget):
-    def __init__(self, title, description, parent=None):
+    def __init__(self, databasecontroller, title, parent=None):
         super().__init__(parent)
+
+        self.db_controller = databasecontroller
+        
 
         from JSONHandler import json_handler
         self.styles = {"Task Header": json_handler.get_css("Task Header"),
@@ -22,7 +25,7 @@ class TaskWidget(QWidget):
         self.row_layout.setContentsMargins(5, 5, 5, 5)
         
         self.checkbox = QCheckBox()
-        self.title_label = QLabel(title)
+        self.title_label = QLabel(title) # change this later
         self.title_label.setStyleSheet(self.styles['Task Header'])
         
         self.row_layout.addWidget(self.checkbox)
@@ -56,7 +59,7 @@ class TaskWidget(QWidget):
 
 
         self.setStyleSheet(self.styles["Task Widget"])
-        self.add_field(description)
+        self.add_field(title) # change this later
 
     def toggle_description(self):
         """Toggles the visibility of the description."""
