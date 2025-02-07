@@ -4,7 +4,7 @@ import os, sys, traceback
 import sqlite3
 
 from PyQt5.QtCore import Qt, pyqtSignal, QModelIndex, QPoint, QSize
-from PyQt5.QtWidgets import QMainWindow, QSpacerItem, QSizePolicy, QWidget, QPushButton, QVBoxLayout, QLabel, QHBoxLayout, QMessageBox, QHeaderView, QAction, QActionGroup, QMenu, QInputDialog, QTableView, QLineEdit
+from PyQt5.QtWidgets import QMainWindow, QDialog, QSpacerItem, QSizePolicy, QWidget, QPushButton, QVBoxLayout, QLabel, QHBoxLayout, QMessageBox, QHeaderView, QAction, QActionGroup, QMenu, QInputDialog, QTableView, QLineEdit
 from PyQt5.QtGui import QIcon
 from PyQt5.QtSql import QSqlDatabase, QSqlTableModel
 import pandas as pd
@@ -31,7 +31,7 @@ class ProjectWindow(QMainWindow):
 
         # query data to set up page
         fields = self.db_controller.execute_query("SELECT * FROM project_fields WHERE project_id = ? ORDER BY field_id ASC", [self.id])
-        (_, self.title, description, deadline) = self.db_controller.execute_query("SELECT * FROM projects WHERE project_id = ?", [self.id])[0]
+        (_, self.title, self.description, self.deadline) = self.db_controller.execute_query("SELECT * FROM projects WHERE project_id = ?", [self.id])[0]
 
         # Menu bar
         menu_bar = self.menuBar()
@@ -39,14 +39,19 @@ class ProjectWindow(QMainWindow):
         rename_action = QAction("Rename", self)
         edit_description_action = QAction("Edit Description", self)
         edit_deadline_action = QAction("Edit Deadline", self)
+        delete_deadline_action = QAction("Delete Deadline", self)
         delete_action = QAction("Delete Project", self)
+
         project_menu.addAction(rename_action)
         project_menu.addAction(edit_description_action)
         project_menu.addAction(edit_deadline_action)
+        project_menu.addAction(delete_deadline_action)
         project_menu.addAction(delete_action)
+
         rename_action.triggered.connect(self.rename_project)
-        edit_description_action.triggered.connect(lambda: print("Edit Description clicked"))
-        edit_deadline_action.triggered.connect(lambda: print("Edit Deadline clicked"))
+        edit_description_action.triggered.connect(self.edit_description)
+        delete_deadline_action.triggered.connect(self.delete_deadline)
+        edit_deadline_action.triggered.connect(self.edit_deadline)
         delete_action.triggered.connect(self.delete_project)
 
         # create a layout
@@ -70,16 +75,16 @@ class ProjectWindow(QMainWindow):
         add_button.clicked.connect(self.openFieldCreator)
 
         # create description label
-        description_label = QLabel(description)
-        description_label.setStyleSheet(styles["Description"])
-        description_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        description_label.setWordWrap(True)
+        self.description_label = QLabel(self.description)
+        self.description_label.setStyleSheet(styles["Description"])
+        self.description_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.description_label.setWordWrap(True)
 
         # create deadline widget
-        project_deadline_label = QLabel(deadline)
-        project_deadline_label.setStyleSheet(styles["Main Deadline"])
-        project_deadline_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        project_deadline_label.setWordWrap(True)
+        self.project_deadline_label = QLabel(self.deadline)
+        self.project_deadline_label.setStyleSheet(styles["Main Deadline"])
+        self.project_deadline_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.project_deadline_label.setWordWrap(True)
 
         # Create a layout for button area
         button_layout = QHBoxLayout()
@@ -87,12 +92,18 @@ class ProjectWindow(QMainWindow):
 
         # create an overall layout
         main_layout = QVBoxLayout()
-        main_layout.addWidget(description_label)
-        main_layout.addWidget(project_deadline_label)
+        main_layout.addWidget(self.description_label)
+        main_layout.addWidget(self.project_deadline_label)
         main_layout.addLayout(self.fields_layout)
         main_layout.addLayout(button_layout)
         # add a spacer so widgets appear at the top
         main_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding))
+
+        # hide the deadline and description if empty
+        if self.description == "":
+            self.description_label.hide()
+        if self.deadline == "":
+            self.project_deadline_label.hide()
 
         # set layout in a container
         container = QWidget(self)
@@ -143,10 +154,69 @@ class ProjectWindow(QMainWindow):
         return
     
     def rename_project(self):
-        new_name, input = QInputDialog.getText(None, f"Rename {self.title}", "New Name:")
-        if input and new_name != "" and new_name != self.title:
-            self.db_controller.execute_query("UPDATE projects SET title = ? WHERE project_id = ?", [new_name, self.id])
-            self.setWindowTitle(new_name)
+        from edit_dialog import EditDialog
+        title_dialog = EditDialog(self.title, "Title", self.title, self)
+        if title_dialog.exec_() == QDialog.Accepted:
+            new_name = title_dialog.get_text()
+            if new_name != "" and new_name != self.title:
+                # Update the project title in the database
+                self.db_controller.execute_query("UPDATE projects SET title = ? WHERE project_id = ?", [new_name, self.id])
+                
+                # Change the window's title to the new name
+                self.setWindowTitle(new_name)
+                self.title = new_name
+                
+                # Emit a signal to notify that the data has been updated
+                self.dataUpdated.emit()
+    
+    def edit_description(self):
+        from edit_dialog import EditDialog
+        description_dialog = EditDialog(self.title, "Description", self.description, self)
+        if description_dialog.exec_() == QDialog.Accepted:
+            new_description = description_dialog.get_text()
+            if new_description != self.description:
+                print(new_description)
+                # Update the project title in the database
+                self.db_controller.execute_query("UPDATE projects SET description = ? WHERE project_id = ?", [new_description, self.id])
+                
+                # Change the window's description qlabel to the new description
+                self.description_label.show()
+                self.description_label.setText(new_description)
+                self.description = new_description
+                
+                # Emit a signal to notify that the data has been updated
+                self.dataUpdated.emit()
+    
+    def edit_deadline(self):
+        from edit_dialog import EditDialog
+        deadline_dialog = EditDialog(self.title, "Deadline", self.deadline, self)
+        if deadline_dialog.exec_() == QDialog.Accepted:
+            new_deadline = deadline_dialog.get_text()
+            if new_deadline != self.deadline:
+                print(new_deadline)
+                # Update the project title in the database
+                self.db_controller.execute_query("UPDATE projects SET deadline = ? WHERE project_id = ?", [new_deadline, self.id])
+                
+                # Change the window's description qlabel to the new description
+                self.project_deadline_label.show()
+                self.project_deadline_label.setText(new_deadline)
+                self.deadline = new_deadline
+                
+                # Emit a signal to notify that the data has been updated
+                self.dataUpdated.emit()
+    
+    def delete_deadline(self):
+        reply = QMessageBox.question(self, f"Delete {self.title} Deadline", 
+            "Are you sure you want to remove the deadline from this project?", 
+            QMessageBox.Yes | QMessageBox.No, 
+            QMessageBox.No)
+
+        # Check the user's response
+        if reply == QMessageBox.Yes:
+            # Proceed with deleting the project
+            self.db_controller.execute_query("UPDATE projects SET deadline = ? WHERE project_id = ?", ["", self.id])
+            self.deadline = ""
+            self.project_deadline_label.hide()
             self.dataUpdated.emit()
     
     def delete_project(self):
