@@ -1,9 +1,9 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox, QPushButton, QSpacerItem, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox, QPushButton, QMenu, QAction
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 
 class TaskWidget(QWidget):
-    def __init__(self, id, title, completed, deadline, parent=None):
+    def __init__(self, id, title, completed, deadline=None, parent=None):
         super().__init__(parent)
         
         from JSONHandler import json_handler
@@ -60,6 +60,19 @@ class TaskWidget(QWidget):
         self.setStyleSheet(self.styles["Task Widget"])
         self.add_field(title) # change this later
 
+        # create context menu
+        self.context_menu = QMenu(self)
+
+        # Add actions
+        self.edit_action = QAction("Edit Task", self)
+        self.delete_action = QAction("Delete Task", self)
+
+        self.edit_action.triggered.connect(self.edit)
+        self.delete_action.triggered.connect(self.delete)
+
+        self.context_menu.addAction(self.edit_action)
+        self.context_menu.addAction(self.delete_action)
+
     def toggle_description(self):
         """Toggles the visibility of the description."""
         self.field_container.setVisible(self.field_container.isHidden())
@@ -84,31 +97,12 @@ class TaskWidget(QWidget):
         description_layout.addWidget(description_label)
 
         self.field_layout.addLayout(description_layout)
-
-
-# Example usage
-if __name__ == "__main__":
-    from PyQt5.QtWidgets import QApplication, QVBoxLayout, QMainWindow
-
-    class MainWindow(QMainWindow):
-        def __init__(self):
-            super().__init__()
-            self.setWindowTitle("Collapsible Task Example")
-
-            central_widget = QWidget()
-            layout = QVBoxLayout(central_widget)
-
-            task1 = TaskWidget("Task 1", "This is the description of Task 1.")
-            task2 = TaskWidget("Task 2", "This is another description.")
-
-            layout.addWidget(task1)
-            layout.addWidget(task2)
-            layout.addStretch()
-
-            self.setCentralWidget(central_widget)
-            self.resize(400, 300)
-
-    app = QApplication([])
-    window = MainWindow()
-    window.show()
-    app.exec()
+    
+    def contextMenuEvent(self, event):
+        self.context_menu.exec_(event.globalPos())
+    
+    def edit(self):
+        print("edit")
+    
+    def delete(self):
+        print("delete")

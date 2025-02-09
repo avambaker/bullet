@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 
-class FieldCreator(QDialog):
+class WidgetCreator(QDialog):
     def __init__(self, parent = None):
         """Create a form that creates or edits a row from user input"""
         super().__init__(parent)
@@ -16,7 +16,8 @@ class FieldCreator(QDialog):
         self.widget_dict = {
             '': QWidget(),
             'Header': QTextEdit(),
-            'Paragraph': QTextEdit()
+            'Paragraph': QTextEdit(),
+            'Task': QTextEdit()
         }
 
         self.type_box = QComboBox()
@@ -61,17 +62,16 @@ class FieldCreator(QDialog):
             self.stacked_widget.setCurrentWidget(self.widget_dict[field_type])
             self.last_field = field_type
     
-    def getHeaderText(self):
-        return self.stacked_widget.currentWidget().toPlainText()
-
-    def getParagraphText(self):
+    def getTextEditText(self):
         return self.stacked_widget.currentWidget().toPlainText()
 
     def getInfo(self):
         method_dict = {
-            'Header': self.getHeaderText,
-            'Paragraph': self.getParagraphText
+            'Header': self.getTextEditText,
+            'Paragraph': self.getTextEditText,
+            'Task': self.getTextEditText,
+            '': lambda: ''
         }
-        self.f_type = self.type_box.currentText()
-        self.f_content = method_dict[self.f_type]()
+        self.w_type = self.type_box.currentText()
+        self.w_content = method_dict[self.w_type]()
         super().accept()

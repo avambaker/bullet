@@ -30,9 +30,11 @@ class ProjectWindow(QMainWindow):
         icon_button_style = json_handler.get_css("icon_button")
 
         # query data to set up page
-        #fields = self.db_controller.execute_query("SELECT * FROM project_fields WHERE project_id = ? ORDER BY field_id ASC", [self.id])
         (_, self.title, self.description, self.deadline) = self.db_controller.execute_query("SELECT * FROM projects WHERE project_id = ?", [self.id])[0]
-        self.get_widgets()
+        from JSONHandler import json_handler
+        self.fields = self.db_controller.execute_query(json_handler.get_function("get_fields_by_project"), (self.id,))
+        self.tasks = self.db_controller.execute_query(json_handler.get_function("get_tasks_by_project"), (self.id,))
+        self.widget_order = self.db_controller.execute_query(json_handler.get_function("get_widget_order_by_project"), (self.id,))
 
         # Menu bar
         menu_bar = self.menuBar()
@@ -140,20 +142,34 @@ class ProjectWindow(QMainWindow):
                 field_widget.setText(new_value)
     
     def openFieldCreator(self):
-        from fieldcreate import FieldCreator
-        create_window = FieldCreator()
+        from widgetcreate import WidgetCreator
+        create_window = WidgetCreator()
         if create_window.exec_():
-            if create_window.f_type != "" and create_window.f_content != "":
-                insert_query = "INSERT INTO fields (field_type, content) VALUES (?, ?)"
-                params = [create_window.f_type, create_window.f_content]
-                self.db_controller.execute_query(insert_query, params)
-                field_id_query = "SELECT MAX(field_id) FROM fields"
-                field_id = self.db_controller.execute_query(field_id_query)[0][0]
+            if create_window.w_type != "" and create_window.w_content != "":
+                # if the new widget is a field
+                if create_window.w_type == 'Header' or create_window.w_type == 'Paragraph':
+                    widget_group = 'fields'
+                    insert_query = "INSERT INTO fields (field_type, content) VALUES (?, ?)"
+                    params = [create_window.w_type, create_window.w_content]
+                    self.db_controller.execute_query(insert_query, params)
+                    field_id_query = "SELECT MAX(field_id) FROM fields"
+                    widget_id = self.db_controller.execute_query(field_id_query)[0][0]
+                # if the new widget is a task
+                else:
+                    widget_group = 'tasks'
+                    self.db_controller.execute_query("INSERT INTO tasks (title) VALUES (?)", [create_window.w_content])
+                    widget_id = self.db_controller.execute_query("SELECT MAX(task_id) FROM tasks")[0][0]
+                # add the new widget to project_widgets (connect it to this page)
                 pw_query = "INSERT INTO project_widgets (widget_id, widget_type, project_id) VALUES (?, ?, ?)"
-                pw_params = [field_id, 'fields', self.id]
+                pw_params = [widget_id, widget_group, self.id]
                 self.db_controller.execute_query(pw_query, pw_params)
-                self.putFieldOnWindow(field_id, *params)
-                self.get_widgets()
+                if widget_group == 'fields':
+                    self.putFieldOnWindow(widget_id, *params)
+                    self.fields.append([widget_id, create_window.w_type, create_window.w_content])
+                else:
+                    self.putTaskOnWindow(widget_id, create_window.w_content, 0)
+                    self.tasks.append([widget_id, create_window.w_content, 0, ""])
+                self.widget_order.append([widget_id, widget_group])
     
     def putFieldOnWindow(self, field_id, field_type, content):
         from fieldwidget import FieldWidget
@@ -164,7 +180,7 @@ class ProjectWindow(QMainWindow):
                             self.deleteField(fw, fid))
         self.widgets_layout.addWidget(field)
     
-    def putTaskOnWindow(self, task_id, title, completed, deadline):
+    def putTaskOnWindow(self, task_id, title, completed, deadline=None):
         from taskwidget import TaskWidget
         task_widget = TaskWidget(task_id, title, completed, deadline)
         self.widgets_layout.addWidget(task_widget)
@@ -255,9 +271,3 @@ class ProjectWindow(QMainWindow):
             self.db_controller.execute_query("DELETE FROM projects WHERE project_id = ?", [self.id])
             self.dataUpdated.emit()
             self.close()
-    
-    def get_widgets(self):
-        from JSONHandler import json_handler
-        self.fields = self.db_controller.execute_query(json_handler.get_function("get_fields_by_project"), (self.id,))
-        self.tasks = self.db_controller.execute_query(json_handler.get_function("get_tasks_by_project"), (self.id,))
-        self.widget_order = self.db_controller.execute_query(json_handler.get_function("get_widget_order_by_project"), (self.id,))
