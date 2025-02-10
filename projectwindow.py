@@ -165,8 +165,10 @@ class ProjectWindow(QMainWindow):
                 self.db_controller.execute_query(pw_query, pw_params)
                 if widget_group == 'fields':
                     self.putFieldOnWindow(widget_id, *params)
+                    # DO I NEED TO UPDATE SELF.FIELDS?
                     self.fields.append([widget_id, create_window.w_type, create_window.w_content])
                 else:
+                    # DO I NEED TO UPDATE SELF.TASKS?
                     self.putTaskOnWindow(widget_id, create_window.w_content, 0)
                     self.tasks.append([widget_id, create_window.w_content, 0, ""])
                 self.widget_order.append([widget_id, widget_group])
@@ -183,6 +185,8 @@ class ProjectWindow(QMainWindow):
     def putTaskOnWindow(self, task_id, title, completed, deadline=None):
         from taskwidget import TaskWidget
         task_widget = TaskWidget(task_id, title, completed, deadline)
+        task_widget.taskChecked.connect(lambda *_: 
+            self.updateTaskStatus(task_id, task_widget.checkbox.isChecked()))
         self.widgets_layout.addWidget(task_widget)
     
     def deleteField(self, field, field_id):
@@ -190,10 +194,10 @@ class ProjectWindow(QMainWindow):
         field.deleteLater()
         self.db_controller.execute_query("DELETE FROM fields WHERE field_id = ?", [field_id])
         self.db_controller.execute_query("DELETE FROM project_widgets WHERE widget_id = ? AND widget_type = 'fields'", [field_id])
+        # COMMENTED THIS OUT, DO I REALLY NEED IT????
         # update self.fields and self.widget_order
-        self.fields = [sublist for sublist in self.fields if sublist[0] != field_id]
-        self.widget_order = [sublist for sublist in self.widget_order if sublist[0] != field_id and sublist[1] != 'fields']
-        return
+        #self.fields = [sublist for sublist in self.fields if sublist[0] != field_id]
+        #self.widget_order = [sublist for sublist in self.widget_order if sublist[0] != field_id and sublist[1] != 'fields']
     
     def rename_project(self):
         from edit_dialog import EditDialog
@@ -271,3 +275,10 @@ class ProjectWindow(QMainWindow):
             self.db_controller.execute_query("DELETE FROM projects WHERE project_id = ?", [self.id])
             self.dataUpdated.emit()
             self.close()
+    
+    def updateTaskStatus(self, task_id, status):
+        new_val = 0
+        if status == False:
+            new_val = 1
+        self.db_controller.execute_query("UPDATE tasks SET completed = ? WHERE task_id = ?", [new_val, task_id])
+        # AM NOT UPDATING TASK LIST (do i need to do this???)

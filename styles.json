@@ -47,5 +47,12 @@
     },
     "Task Widget": {
         "background-color": "lightgray"
+    },
+    "Task Deadline": {
+        "font-family": "Arial",
+        "font-size": "12px",
+        "font-weight": "normal",
+        "color": "black",
+        "background-color": "transparent"
     }
 }

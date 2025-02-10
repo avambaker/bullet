@@ -1,15 +1,21 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox, QPushButton, QMenu, QAction
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 
 class TaskWidget(QWidget):
+    taskChecked = pyqtSignal()  # Custom signal for edit action
+
     def __init__(self, id, title, completed, deadline=None, parent=None):
         super().__init__(parent)
+
+        self.id = id
+        self.deadline = deadline
         
         from JSONHandler import json_handler
         self.styles = {"Task Header": json_handler.get_css("Task Header"),
                   "Task Content": json_handler.get_css("Task Content"),
-                  "Task Widget": json_handler.get_css("Task Widget")}
+                  "Task Widget": json_handler.get_css("Task Widget"),
+                  "Task Deadline": json_handler.get_css("Task Deadline")}
 
         # Main Layout
         self.main_layout = QVBoxLayout(self)
@@ -24,6 +30,7 @@ class TaskWidget(QWidget):
         self.checkbox = QCheckBox()
         if completed == 1:
             self.checkbox.setChecked(True)
+        self.checkbox.pressed.connect(self.taskChecked.emit)
         self.title_label = QLabel(title) # change this later
         self.title_label.setStyleSheet(self.styles['Task Header'])
         
@@ -47,14 +54,16 @@ class TaskWidget(QWidget):
         self.spacer_width = self.checkbox.sizeHint().width() + 10  # Get the checkbox's width
 
         # set up fields
-        self.field_container = QWidget()
-        self.field_container.setStyleSheet(self.styles["Task Widget"])
-        self.field_container.setVisible(False)
-        self.main_layout.addWidget(self.field_container)
+        self.collapsible_area = QWidget()
+        self.collapsible_area.setStyleSheet(self.styles["Task Widget"])
+        self.collapsible_area.setVisible(False)
+        self.main_layout.addWidget(self.collapsible_area)
 
         # create layout
         self.field_layout = QVBoxLayout()
-        self.field_container.setLayout(self.field_layout)
+        self.collapsible_layout = QVBoxLayout()
+        self.collapsible_layout.addLayout(self.field_layout)
+        self.collapsible_area.setLayout(self.collapsible_layout)
 
 
         self.setStyleSheet(self.styles["Task Widget"])
@@ -73,10 +82,16 @@ class TaskWidget(QWidget):
         self.context_menu.addAction(self.edit_action)
         self.context_menu.addAction(self.delete_action)
 
+        # create deadline
+        deadline_label = QLabel("Due: " + self.deadline)
+        self.collapsible_layout.addWidget(deadline_label, alignment=Qt.AlignRight)
+        if self.deadline == "":
+            deadline_label.hide()
+
     def toggle_description(self):
         """Toggles the visibility of the description."""
-        self.field_container.setVisible(self.field_container.isHidden())
-        self.toggle_button.setText("▲" if not self.field_container.isHidden() else "▼")
+        self.collapsible_area.setVisible(self.collapsible_area.isHidden())
+        self.toggle_button.setText("▲" if not self.collapsible_area.isHidden() else "▼")
 
     def toggle_on_click(self, event):
         self.toggle_button.toggle()
@@ -106,3 +121,7 @@ class TaskWidget(QWidget):
     
     def delete(self):
         print("delete")
+
+    def checkedPressed(self):
+
+        print("checked pressed")
