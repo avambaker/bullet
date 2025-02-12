@@ -80,6 +80,10 @@ class ProjectWindow(QMainWindow):
                 except Exception as e:
                     print(f"Error adding task {self.tasks[task_index]} to project {self.id}")
                     print(e)
+                    exc_type, exc_obj, exc_tb = sys.exc_info()
+                    fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                    print(exc_type, fname, exc_tb.tb_lineno)
+
         
         # add a new field button
         add_button = QPushButton("")
@@ -184,7 +188,7 @@ class ProjectWindow(QMainWindow):
     
     def putTaskOnWindow(self, task_id, title, completed, deadline=None):
         from taskwidget import TaskWidget
-        task_widget = TaskWidget(task_id, title, completed, deadline)
+        task_widget = TaskWidget(self.db_controller, task_id, title, completed, deadline)
         task_widget.taskChecked.connect(lambda *_: 
             self.updateTaskStatus(task_id, task_widget.checkbox.isChecked()))
         self.widgets_layout.addWidget(task_widget)

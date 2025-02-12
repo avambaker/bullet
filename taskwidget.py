@@ -1,21 +1,34 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox, QPushButton, QMenu, QAction
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt, pyqtSignal
+import os
+import sys
 
 class TaskWidget(QWidget):
     taskChecked = pyqtSignal()  # Custom signal for edit action
 
-    def __init__(self, id, title, completed, deadline=None, parent=None):
+    def __init__(self, databasecontroller, id, title, completed, deadline=None, parent=None):
         super().__init__(parent)
 
         self.id = id
         self.deadline = deadline
+        self.db_controller = databasecontroller
         
         from JSONHandler import json_handler
-        self.styles = {"Task Header": json_handler.get_css("Task Header"),
-                  "Task Content": json_handler.get_css("Task Content"),
+        self.styles = {"Task Title": json_handler.get_css("Task Title"),
+                  "Task Header": json_handler.get_css("Task Header"),
+                  "Task Paragraph": json_handler.get_css("Task Paragraph"),
                   "Task Widget": json_handler.get_css("Task Widget"),
                   "Task Deadline": json_handler.get_css("Task Deadline")}
+
+        try:
+            self.get_fields = json_handler.get_function("get_fields_by_task")
+        except Exception as e:
+            print("error at declaration of self.get_fields:", e)
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
+
 
         # Main Layout
         self.main_layout = QVBoxLayout(self)
@@ -32,7 +45,7 @@ class TaskWidget(QWidget):
             self.checkbox.setChecked(True)
         self.checkbox.pressed.connect(self.taskChecked.emit)
         self.title_label = QLabel(title) # change this later
-        self.title_label.setStyleSheet(self.styles['Task Header'])
+        self.title_label.setStyleSheet(self.styles['Task Title'])
         
         self.row_layout.addWidget(self.checkbox)
         self.row_layout.addWidget(self.title_label)
@@ -67,7 +80,10 @@ class TaskWidget(QWidget):
 
 
         self.setStyleSheet(self.styles["Task Widget"])
-        self.add_field(title) # change this later
+
+        # add fields dynamically
+        for (_, field_type, content) in self.db_controller.execute_query(self.get_fields, [self.id]):
+            self.add_field(field_type, content)
 
         # create context menu
         self.context_menu = QMenu(self)
@@ -97,7 +113,7 @@ class TaskWidget(QWidget):
         self.toggle_button.toggle()
         self.toggle_description()
     
-    def add_field(self, content):
+    def add_field(self, field_type, content):
         description_layout = QHBoxLayout()
         description_layout.setContentsMargins(0, 0, 0, 0)
 
@@ -106,7 +122,7 @@ class TaskWidget(QWidget):
 
         description_label = QLabel(content)
         description_label.setWordWrap(True)
-        description_label.setStyleSheet(self.styles['Task Content'])
+        description_label.setStyleSheet(self.styles[f'Task {field_type}'])
 
         description_layout.addWidget(spacer_widget)  # Indentation
         description_layout.addWidget(description_label)
