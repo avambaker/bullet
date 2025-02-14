@@ -3,7 +3,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt, pyqtSignal, QDateTime
 import os
 import sys
-import datetime
+from datetime import datetime
 
 class TaskWidget(QWidget):
     taskChecked = pyqtSignal()  # Custom signal for edit action
@@ -145,16 +145,24 @@ class TaskWidget(QWidget):
         
         # Short form response 2
         deadline_input = QDateTimeEdit()
-        if self.deadline != "" and self.deadline:
+        if self.deadline is not None and self.deadline != "":
             try:
-                qdeadline = QDateTime.fromDateTime(datetime.strptime(self.deadline, "ddd MM/dd/yyyy h:mm AP"))
+                qdeadline = QDateTime(datetime.strptime(self.deadline, "%a %m/%d/%Y %I:%M %p"))
                 deadline_input.setDateTime(qdeadline)
             except Exception as e:
                 print(f"Deadline not valid on task {self.id}")
+                print(self.deadline)
                 print(e)
-        else:
-            deadline_input.setDateTime(QDateTime())
         form_layout.addRow(QLabel("Deadline:"), deadline_input)
+
+        enable_deadline_input = QCheckBox()
+        if self.deadline_label.isHidden():
+            enable_deadline_input.setChecked(False)
+        else:
+            enable_deadline_input.setChecked(True)
+        enable_deadline_input.stateChanged.connect(self.deadlineWarning)
+
+        form_layout.addRow(QLabel("Enable Deadline:"), enable_deadline_input)
         
         # Dialog buttons
         buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -172,7 +180,10 @@ class TaskWidget(QWidget):
             from JSONHandler import json_handler
             new_title = title_input.text()
             new_body = body_input.toPlainText()
-            new_deadline = deadline_input.dateTime().toString("ddd MM/dd/yyyy h:mm AP")
+            if deadline_input.dateTime().isNull():
+                new_deadline = ""
+            else:
+                new_deadline = deadline_input.dateTime().toString("ddd MM/dd/yyyy h:mm AP")
             if new_title != self.title:
                 self.db_controller.execute_query(json_handler.get_function("update_title_in_task_data"), [new_title, self.id])
                 self.title = new_title
@@ -181,12 +192,21 @@ class TaskWidget(QWidget):
                 self.db_controller.execute_query(json_handler.get_function("update_body_in_task_data"), [new_body, self.id])
                 self.body = new_body
                 self.body_label.setText(self.body)
-            if new_deadline != QDateTime().toString("ddd MM/dd/yyyy h:mm AP") and new_deadline != self.deadline:
+            if new_deadline != self.deadline and new_deadline != "Sat 01/01/2000 12:00 AM": # null deadline
                 self.db_controller.execute_query(json_handler.get_function("update_deadline_in_task_data"), [new_deadline, self.id])
                 self.deadline = new_deadline
                 self.deadline_label.setText(f"Due: {self.deadline}")
                 self.deadline_label.show()
-            print(title_input.text(), body_input.toPlainText(), deadline_input.dateTime().toString("ddd MM/dd/yyyy h:mm AP"))
+            if enable_deadline_input.isChecked() and self.deadline is not None and self.deadline != "":
+                self.deadline_label.show()
+            if not enable_deadline_input.isChecked():
+                self.deadline = ""
+                self.db_controller.execute_query(json_handler.get_function("update_deadline_in_task_data"), ["", self.id])
+                self.deadline_label.hide()
+    
+    def deadlineWarning(self, state):
+        if state == Qt.Unchecked:
+            QMessageBox.warning(self, "Disable Deadline", "Disabling the deadline will set it to null.")
 
     
     def delete(self):
