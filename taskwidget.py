@@ -1,18 +1,21 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox, QPushButton, QMenu, QAction, QMessageBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox, QPushButton, QMenu, QAction, QMessageBox, QTextEdit, QLineEdit, QDialog, QDialogButtonBox, QFormLayout, QDateTimeEdit
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QDateTime
 import os
 import sys
+import datetime
 
 class TaskWidget(QWidget):
     taskChecked = pyqtSignal()  # Custom signal for edit action
 
-    def __init__(self, databasecontroller, id, title, completed, deadline="", parent=None):
+    def __init__(self, databasecontroller, id, title, completed, body = "", deadline="", parent=None):
         super().__init__(parent)
 
         self.id = id
         self.deadline = deadline
         self.db_controller = databasecontroller
+        self.body = body
+        self.title = title
         
         from JSONHandler import json_handler
         self.styles = {"Task Title": json_handler.get_css("Task Title"),
@@ -20,15 +23,6 @@ class TaskWidget(QWidget):
                   "Task Paragraph": json_handler.get_css("Task Paragraph"),
                   "Task Widget": json_handler.get_css("Task Widget"),
                   "Task Deadline": json_handler.get_css("Task Deadline")}
-
-        try:
-            self.get_fields = json_handler.get_function("get_widgets_by_task")
-        except Exception as e:
-            print("error at declaration of self.get_fields:", e)
-            exc_type, exc_obj, exc_tb = sys.exc_info()
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            print(exc_type, fname, exc_tb.tb_lineno)
-
 
         # Main Layout
         self.main_layout = QVBoxLayout(self)
@@ -73,17 +67,26 @@ class TaskWidget(QWidget):
         self.main_layout.addWidget(self.collapsible_area)
 
         # create layout
-        self.field_layout = QVBoxLayout()
+        body_layout = QHBoxLayout()
         self.collapsible_layout = QVBoxLayout()
-        self.collapsible_layout.addLayout(self.field_layout)
+        self.collapsible_layout.addLayout(body_layout)
         self.collapsible_area.setLayout(self.collapsible_layout)
 
 
         self.setStyleSheet(self.styles["Task Widget"])
 
         # add fields dynamically
-        for (_, field_type, content) in self.db_controller.execute_query(self.get_fields, [self.id]):
-            self.add_field(field_type, content)
+        body_layout.setContentsMargins(0, 0, 0, 0)
+
+        spacer_widget = QWidget()
+        spacer_widget.setFixedWidth(self.spacer_width)  # Match title width
+
+        self.body_label = QLabel(self.body)
+        self.body_label.setWordWrap(True)
+        self.body_label.setStyleSheet(self.styles['Task Paragraph'])
+
+        body_layout.addWidget(spacer_widget)  # Indentation
+        body_layout.addWidget(self.body_label)
 
         # create context menu
         self.context_menu = QMenu(self)
@@ -100,12 +103,12 @@ class TaskWidget(QWidget):
 
         # create deadline
         if self.deadline:
-            deadline_label = QLabel("Due: " + self.deadline)
+            self.deadline_label = QLabel("Due: " + self.deadline)
         else:
-            deadline_label = QLabel("No Deadline")
-        self.collapsible_layout.addWidget(deadline_label, alignment=Qt.AlignRight)
+            self.deadline_label = QLabel("No Deadline")
+        self.collapsible_layout.addWidget(self.deadline_label, alignment=Qt.AlignRight)
         if not self.deadline:
-            deadline_label.hide()
+            self.deadline_label.hide()
 
     def toggle_description(self):
         """Toggles the visibility of the description."""
@@ -116,27 +119,75 @@ class TaskWidget(QWidget):
         self.toggle_button.toggle()
         self.toggle_description()
     
-    def add_field(self, field_type, content):
-        description_layout = QHBoxLayout()
-        description_layout.setContentsMargins(0, 0, 0, 0)
-
-        spacer_widget = QWidget()
-        spacer_widget.setFixedWidth(self.spacer_width)  # Match title width
-
-        description_label = QLabel(content)
-        description_label.setWordWrap(True)
-        description_label.setStyleSheet(self.styles[f'Task {field_type}'])
-
-        description_layout.addWidget(spacer_widget)  # Indentation
-        description_layout.addWidget(description_label)
-
-        self.field_layout.addLayout(description_layout)
-    
     def contextMenuEvent(self, event):
         self.context_menu.exec_(event.globalPos())
     
     def edit(self):
-        print("edit")
+        edit_dialog = QDialog()
+        edit_dialog.setWindowTitle("Edit Task")
+        edit_dialog.setGeometry(100, 100, 400, 300)
+
+        # Create layout
+        layout = QVBoxLayout()
+        
+        # Create a form layout for the input fields
+        form_layout = QFormLayout()
+        
+        # Short form response 1
+        title_input = QLineEdit()
+        title_input.setText(self.title)
+        form_layout.addRow(QLabel("Title:"), title_input)
+        
+        # Long form response
+        body_input = QTextEdit()
+        body_input.setPlainText(self.body)
+        form_layout.addRow(QLabel("Body:"), body_input)
+        
+        # Short form response 2
+        deadline_input = QDateTimeEdit()
+        if self.deadline != "" and self.deadline:
+            try:
+                qdeadline = QDateTime.fromDateTime(datetime.strptime(self.deadline, "ddd MM/dd/yyyy h:mm AP"))
+                deadline_input.setDateTime(qdeadline)
+            except Exception as e:
+                print(f"Deadline not valid on task {self.id}")
+                print(e)
+        else:
+            deadline_input.setDateTime(QDateTime())
+        form_layout.addRow(QLabel("Deadline:"), deadline_input)
+        
+        # Dialog buttons
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttonBox.accepted.connect(edit_dialog.accept)
+        buttonBox.rejected.connect(edit_dialog.reject)
+        
+        # Add form layout and button box to the main layout
+        layout.addLayout(form_layout)
+        layout.addWidget(buttonBox)
+        
+        # Set the main layout
+        edit_dialog.setLayout(layout)
+
+        if edit_dialog.exec_() == QDialog.Accepted:
+            from JSONHandler import json_handler
+            new_title = title_input.text()
+            new_body = body_input.toPlainText()
+            new_deadline = deadline_input.dateTime().toString("ddd MM/dd/yyyy h:mm AP")
+            if new_title != self.title:
+                self.db_controller.execute_query(json_handler.get_function("update_title_in_task_data"), [new_title, self.id])
+                self.title = new_title
+                self.title_label.setText(self.title)
+            if new_body != self.body:
+                self.db_controller.execute_query(json_handler.get_function("update_body_in_task_data"), [new_body, self.id])
+                self.body = new_body
+                self.body_label.setText(self.body)
+            if new_deadline != QDateTime().toString("ddd MM/dd/yyyy h:mm AP") and new_deadline != self.deadline:
+                self.db_controller.execute_query(json_handler.get_function("update_deadline_in_task_data"), [new_deadline, self.id])
+                self.deadline = new_deadline
+                self.deadline_label.setText(f"Due: {self.deadline}")
+                self.deadline_label.show()
+            print(title_input.text(), body_input.toPlainText(), deadline_input.dateTime().toString("ddd MM/dd/yyyy h:mm AP"))
+
     
     def delete(self):
         reply = QMessageBox.question(self, f"Delete Task", 

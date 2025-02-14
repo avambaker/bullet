@@ -182,9 +182,9 @@ class ProjectWindow(QMainWindow):
                             self.deleteField(fw, fid))
         self.widgets_layout.addWidget(field)
     
-    def putTaskOnWindow(self, task_id, title, completed=0, deadline=None):
+    def putTaskOnWindow(self, task_id, title, completed=0, content=None, deadline=None):
         from taskwidget import TaskWidget
-        task_widget = TaskWidget(self.db_controller, task_id, title, completed, deadline)
+        task_widget = TaskWidget(self.db_controller, task_id, title, completed, content, deadline)
         task_widget.taskChecked.connect(lambda *_: 
             self.updateTaskStatus(task_id, task_widget.checkbox.isChecked()))
         self.widgets_layout.addWidget(task_widget)
