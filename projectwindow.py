@@ -4,7 +4,7 @@ import os, sys, traceback
 import sqlite3
 
 from PyQt5.QtCore import Qt, pyqtSignal, QModelIndex, QPoint, QSize
-from PyQt5.QtWidgets import QMainWindow, QDialog, QSpacerItem, QSizePolicy, QWidget, QPushButton, QVBoxLayout, QLabel, QHBoxLayout, QMessageBox, QHeaderView, QAction, QActionGroup, QMenu, QInputDialog, QTableView, QLineEdit
+from PyQt5.QtWidgets import QMainWindow, QDialog, QSpacerItem, QSizePolicy, QScrollArea, QWidget, QPushButton, QVBoxLayout, QLabel, QHBoxLayout, QMessageBox, QHeaderView, QAction, QActionGroup, QMenu, QInputDialog, QTableView, QLineEdit
 from PyQt5.QtGui import QIcon
 from PyQt5.QtSql import QSqlDatabase, QSqlTableModel
 
@@ -126,8 +126,12 @@ class ProjectWindow(QMainWindow):
             self.project_deadline_label.hide()
 
         # set layout in a container
-        container = QWidget(self)
-        container.setLayout(main_layout)
+        widget_container = QWidget(self)
+        widget_container.setLayout(main_layout)
+        widget_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        container = QScrollArea(self)
+        container.setWidgetResizable(True)
+        container.setWidget(widget_container)
 
         # set up window
         self.setWindowTitle(self.title)
