@@ -56,23 +56,19 @@ class WidgetCreator(QDialog):
 
     def createInput(self):
         """Show/hide widgets based on the selected field type"""
-        self.type_box.blockSignals(True)  # Prevent unintended signals
         field_type = self.type_box.currentText()
-        #print(f"[DEBUG] User selected: {field_type}")
+    
+        # Prevent unintended signals by blocking them only while changing the current index
+        current_index = self.type_box.currentIndex()
+        self.type_box.blockSignals(True)  # Prevent unintended signals
+        self.type_box.setCurrentIndex(current_index)  # Set current index explicitly
+        self.type_box.blockSignals(False)  # Re-enable signals
 
+        # Change the widget shown in the stacked widget based on selected type
         if field_type in self.widget_dict:
             self.stacked_widget.setCurrentWidget(self.widget_dict[field_type])
 
         self.last_field = field_type
-        self.type_box.blockSignals(False)  # Re-enable signals
-
-        """field_type = self.type_box.currentText()
-
-        if field_type != self.last_field:
-            if self.last_field != "":
-                self.widget_dict[self.last_field].clear()
-            self.stacked_widget.setCurrentWidget(self.widget_dict[field_type])
-            self.last_field = field_type"""
     
     def getTextEditText(self):
         return self.stacked_widget.currentWidget().toPlainText()
