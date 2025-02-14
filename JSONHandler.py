@@ -50,6 +50,7 @@ class JSONHandler:
         func = self.functions.get(function_name)
         if func is None:
             logging.warning(f"{function_name} not found in functions dictionary.")
+            print("Function not in dictionary")
             return None
         return func
 

@@ -28,6 +28,7 @@ class MainWindow(QMainWindow):
         from dbcontroller import DatabaseController
         self.db_controller = DatabaseController()
         self.db_controller.connect_to_database()
+        self.db_controller.execute_query("PRAGMA foreign_keys = ON;")
 
         # Connect the table view to the model
         self.model = ReadOnlySqlTableModel(self)

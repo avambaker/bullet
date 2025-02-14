@@ -13,9 +13,15 @@ class DatabaseController:
                 raise Exception(f"Database Error: {self.db.lastError().text()}")
         return self.db
 
-    def execute_query(self, query, params=[]):
+    def execute_query(self, query, params=None):
+        if params is None:
+            params = []
+        assert isinstance(params, (tuple, list)), "Params must be a tuple or list"
         sql_query = QSqlQuery(self.db)
-        sql_query.prepare(query)
+        if not sql_query.prepare(query):  # ✅ Ensure preparation succeeds
+            print(f"Error preparing query: {sql_query.lastError().text()}")
+            print("Query:", query)
+            return None
         for val in params:
             sql_query.addBindValue(val)
         if not sql_query.exec_():
@@ -28,5 +34,4 @@ class DatabaseController:
         results = []
         while sql_query.next():
             results.append([sql_query.value(i) for i in range(sql_query.record().count())])
-        
         return results

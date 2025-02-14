@@ -24,6 +24,7 @@ class WidgetCreator(QDialog):
         for field in self.widget_dict.keys():
             self.type_box.addItem(field)
         self.type_box.currentTextChanged.connect(self.createInput)
+        self.type_box.setCurrentIndex(0)
 
         form_layout = QFormLayout()
         form_layout.setSpacing(20)
@@ -33,6 +34,7 @@ class WidgetCreator(QDialog):
         # add all the input widgets
         for key in self.widget_dict.keys():
             self.stacked_widget.addWidget(self.widget_dict[key])
+        self.stacked_widget.setCurrentWidget(self.widget_dict[""])
  
         # creating a dialog button for ok and cancel
         self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -48,24 +50,37 @@ class WidgetCreator(QDialog):
         main_layout.addWidget(self.buttonBox)
         self.setLayout(main_layout)
 
-        self.last_field = self.type_box.currentText()
+        self.last_field = ""
 
         self.show()
 
     def createInput(self):
         """Show/hide widgets based on the selected field type"""
+        self.type_box.blockSignals(True)  # Prevent unintended signals
         field_type = self.type_box.currentText()
+        #print(f"[DEBUG] User selected: {field_type}")
+
+        if field_type in self.widget_dict:
+            self.stacked_widget.setCurrentWidget(self.widget_dict[field_type])
+
+        self.last_field = field_type
+        self.type_box.blockSignals(False)  # Re-enable signals
+
+        """field_type = self.type_box.currentText()
 
         if field_type != self.last_field:
             if self.last_field != "":
                 self.widget_dict[self.last_field].clear()
             self.stacked_widget.setCurrentWidget(self.widget_dict[field_type])
-            self.last_field = field_type
+            self.last_field = field_type"""
     
     def getTextEditText(self):
         return self.stacked_widget.currentWidget().toPlainText()
 
     def getInfo(self):
+        #print(f"Before setting: self.w_type = {self.type_box.currentText()}")
+        self.w_type = self.type_box.currentText()
+        #print(f"After setting: self.w_type = {self.w_type}")
         method_dict = {
             'Header': self.getTextEditText,
             'Paragraph': self.getTextEditText,

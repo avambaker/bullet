@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox, QPushButton, QMenu, QAction
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox, QPushButton, QMenu, QAction, QMessageBox
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt, pyqtSignal
 import os
@@ -7,7 +7,7 @@ import sys
 class TaskWidget(QWidget):
     taskChecked = pyqtSignal()  # Custom signal for edit action
 
-    def __init__(self, databasecontroller, id, title, completed, deadline=None, parent=None):
+    def __init__(self, databasecontroller, id, title, completed, deadline="", parent=None):
         super().__init__(parent)
 
         self.id = id
@@ -22,7 +22,7 @@ class TaskWidget(QWidget):
                   "Task Deadline": json_handler.get_css("Task Deadline")}
 
         try:
-            self.get_fields = json_handler.get_function("get_fields_by_task")
+            self.get_fields = json_handler.get_function("get_widgets_by_task")
         except Exception as e:
             print("error at declaration of self.get_fields:", e)
             exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -99,9 +99,12 @@ class TaskWidget(QWidget):
         self.context_menu.addAction(self.delete_action)
 
         # create deadline
-        deadline_label = QLabel("Due: " + self.deadline)
+        if self.deadline:
+            deadline_label = QLabel("Due: " + self.deadline)
+        else:
+            deadline_label = QLabel("No Deadline")
         self.collapsible_layout.addWidget(deadline_label, alignment=Qt.AlignRight)
-        if self.deadline == "":
+        if not self.deadline:
             deadline_label.hide()
 
     def toggle_description(self):
@@ -136,8 +139,14 @@ class TaskWidget(QWidget):
         print("edit")
     
     def delete(self):
-        print("delete")
+        reply = QMessageBox.question(self, f"Delete Task", 
+            "Are you sure you want to delete this task?", 
+            QMessageBox.Yes | QMessageBox.No, 
+            QMessageBox.No)
 
-    def checkedPressed(self):
-
-        print("checked pressed")
+        # Check the user's response
+        if reply == QMessageBox.Yes:
+            # Proceed with deleting the project
+            from JSONHandler import json_handler
+            self.db_controller.execute_query(json_handler.get_function("delete_task"), [self.id])
+            self.deleteLater()

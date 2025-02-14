@@ -1,6 +1,18 @@
 {
-    "get_fields_by_project": "\n    SELECT f.field_id, f.field_type, f.content\n    FROM project_widgets pw\n    LEFT JOIN fields f ON pw.widget_id = f.field_id\n    WHERE pw.project_id = ? AND pw.widget_type = 'fields'\n    ORDER BY pw.display_order;\n",
-    "get_tasks_by_project": "\n    SELECT t.task_id, t.title, t.completed, t.deadline\n    FROM project_widgets pw\n    LEFT JOIN tasks t ON pw.widget_id = t.task_id\n    WHERE pw.project_id = ? AND pw.widget_type = 'tasks'\n    ORDER BY pw.display_order;\n",
-    "get_widget_order_by_project": "\n    SELECT pw.widget_id, pw.widget_type\n    FROM project_widgets pw\n    WHERE pw.project_id = ?\n    ORDER BY pw.display_order;\n",
-    "get_fields_by_task": "SELECT * FROM fields f LEFT JOIN task_widgets tw ON f.field_id = tw.field_id WHERE tw.task_id = ? ORDER BY tw.display_order"
+    "get_widgets_by_project": "\n    SELECT pwidget_id, widget_type, content\n    FROM project_widgets\n    WHERE project_id = ?\n    ORDER BY display_order;\n",
+    "get_task_data_by_project": "\n    SELECT t.pwidget_id, t.title, t.completed, t.deadline\n    FROM project_widgets pw\n    LEFT JOIN task_data t ON pw.pwidget_id = t.pwidget_id\n    WHERE pw.project_id = ? AND pw.widget_type = 'Task'\n    ORDER BY pw.display_order;\n",
+    "get_widgets_by_task": "SELECT twidget_id, widget_type, content FROM task_widgets\n WHERE pwidget_id = ? ORDER BY display_order",
+    "get_project_by_id": "SELECT * FROM projects WHERE project_id = ?",
+    "update_pwidget_content_by_id": "UPDATE project_widgets SET content = ? WHERE pwidget_id = ?",
+    "insert_into_project_widgets": "INSERT INTO project_widgets (project_id, widget_type, content) VALUES (?, ?, ?)",
+    "get_max_pwidget_id": "SELECT MAX(pwidget_id) FROM project_widgets",
+    "insert_into_task_data": "INSERT INTO task_data (pwidget_id, title) VALUES (?, ?)",
+    "delete_project_widget_by_id": "DELETE FROM project_widgets WHERE pwidget_id = ?",
+    "rename_project_by_id": "UPDATE projects SET title = ? WHERE project_id = ?",
+    "update_project_description": "UPDATE projects SET description = ? WHERE project_id = ?",
+    "update_project_deadline": "UPDATE projects SET deadline = ? WHERE project_id = ?",
+    "delete_project": "DELETE FROM projects WHERE project_id = ?",
+    "update_task_completed": "UPDATE task_data SET completed = ? WHERE pwidget_id = ?",
+    "delete_task": "DELETE FROM project_widgets WHERE pwidget_id = ?",
+    "insert_twidget": "INSERT INTO task_widgets (pwidget_id, widget_type, content, display_order) VALUES (?, ?, ?, (SELECT COALESCE(MAX(display_order), 0) + 1 FROM task_widgets WHERE pwidget_id = ?));"
 }
