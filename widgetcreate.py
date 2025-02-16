@@ -74,9 +74,7 @@ class WidgetCreator(QDialog):
         return self.stacked_widget.currentWidget().toPlainText()
 
     def getInfo(self):
-        #print(f"Before setting: self.w_type = {self.type_box.currentText()}")
         self.w_type = self.type_box.currentText()
-        #print(f"After setting: self.w_type = {self.w_type}")
         method_dict = {
             'Header': self.getTextEditText,
             'Paragraph': self.getTextEditText,

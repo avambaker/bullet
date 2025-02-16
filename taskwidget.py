@@ -7,8 +7,9 @@ from datetime import datetime
 
 class TaskWidget(QWidget):
     taskChecked = pyqtSignal()  # Custom signal for edit action
+    taskDeleted = pyqtSignal()
 
-    def __init__(self, databasecontroller, id, title, completed, body = "", deadline="", parent=None):
+    def __init__(self, databasecontroller, id, title, completed, body = "", deadline="", page_pos = None, parent=None):
         super().__init__(parent)
 
         self.id = id
@@ -16,6 +17,7 @@ class TaskWidget(QWidget):
         self.db_controller = databasecontroller
         self.body = body
         self.title = title
+        self.page_pos = page_pos
         
         from JSONHandler import json_handler
         self.styles = {"Task Title": json_handler.get_css("Task Title"),
@@ -221,3 +223,4 @@ class TaskWidget(QWidget):
             from JSONHandler import json_handler
             self.db_controller.execute_query(json_handler.get_function("delete_task"), [self.id])
             self.deleteLater()
+            self.taskDeleted.emit()

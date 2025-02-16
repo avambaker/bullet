@@ -91,11 +91,11 @@ END;
 
 """
 ]
-queries = ["INSERT INTO task_widgets (pwidget_id, widget_type, content, display_order) VALUES (?, ?, ?, (SELECT COALESCE(MAX(display_order), 0) + 1 FROM task_widgets WHERE pwidget_id = ?));"]
+queries = []
 
 for i, query in enumerate(queries):
     try:
-        cursor.execute(query, [3, "Paragraph", "Paragraph for task with pwidget id 3", 3])
+        cursor.execute(query, [])
         results = cursor.fetchall()
         for row in results:
             print(row)
@@ -108,6 +108,15 @@ conn.commit()
 conn.close()
 print("done")
 
+query = """
+SELECT pwidget_id, display_order
+FROM project_widgets
+WHERE project_id = (SELECT project_id FROM project_widgets WHERE pwidget_id = ?)
+AND display_order > (SELECT display_order FROM project_widgets WHERE pwidget_id = ?)
+ORDER BY display_order ASC
+LIMIT 1;
+"""
+
 def add_to_json(query, query_name):
     import json
     with open("sqlite_functions.json", "r") as f:
@@ -115,3 +124,6 @@ def add_to_json(query, query_name):
     data[query_name] = query
     with open("sqlite_functions.json", "w") as json_file:
         json.dump(data, json_file, indent=4)
+    print("succesfully edited json")
+
+#add_to_json(query, "get_widget_below")

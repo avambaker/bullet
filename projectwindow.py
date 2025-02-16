@@ -65,16 +65,16 @@ class ProjectWindow(QMainWindow):
 
         # dynamically add each field
         task_index = 0
-        for (pw_id, widget_type, content) in self.widgets:
+        for (pw_id, widget_type, content, page_pos) in self.widgets:
             if widget_type != 'Task':
                 try:
-                    self.putFieldOnWindow(pw_id, widget_type, content)
+                    self.putFieldOnWindow(pw_id, widget_type, content, page_pos)
                 except Exception as e:
                     print(f"Error adding widget {pw_id} to project {self.id}")
                     print(e)
             else:
                 try:
-                    self.putTaskOnWindow(*self.task_data[task_index])
+                    self.putTaskOnWindow(*self.task_data[task_index], page_pos)
                     task_index += 1
                 except Exception as e:
                     print(f"Error adding task {self.task_data[task_index]} to project {self.id}")
@@ -164,33 +164,37 @@ class ProjectWindow(QMainWindow):
                 widget_id = self.db_controller.execute_query(json_handler.get_function("get_max_pwidget_id"))[0][0]
 
                 # add widget to the project page
-                print(create_window.w_type, create_window.w_content)
                 if create_window.w_type == 'Task':
                     self.putTaskOnWindow(widget_id, create_window.w_content)
+                    self.widgets.append([widget_id, *params[1:], len(self.widgets)])
                 else:
-                    self.putFieldOnWindow(widget_id, *params[1:])
-                    # DO I NEED TO UPDATE SELF.FIELDS?
-                    """####self.fields.append([widget_id, create_window.w_type, create_window.w_content])
-                else:
-                    # DO I NEED TO UPDATE SELF.TASKS?
-                    self.putTaskOnWindow(widget_id, create_window.w_content, 0)
-                    self.task_data.append([widget_id, create_window.w_content, 0, ""])
-                self.widget_order.append([widget_id, widget_group])"""
+                    self.putFieldOnWindow(widget_id, *params[1:], len(self.widgets))
+                    self.widgets.append([widget_id, *params[1:], len(self.widgets)])
     
-    def putFieldOnWindow(self, field_id, field_type, content):
+    def putFieldOnWindow(self, field_id, field_type, content, page_pos = None):
+        if page_pos == None:
+            page_pos = len(self.widgets)
         from fieldwidget import FieldWidget
-        field = FieldWidget(field_type, content)
+        field = FieldWidget(field_id, field_type, content, page_pos)
         field.editClicked.connect(lambda *_, fw=field, fid=field_id, f=field_type, v=content: 
                             self.openFieldEditor(fw, fid, f, v))
         field.deleteClicked.connect(lambda *_, fw=field, fid=field_id: 
                             self.deleteField(fw, fid))
+        field.moveUp.connect(lambda *_, fw=field: 
+                            self.moveWidgetUp(fw))
+        field.moveDown.connect(lambda *_, fw=field: 
+                            self.moveWidgetDown(fw))
         self.widgets_layout.addWidget(field)
     
-    def putTaskOnWindow(self, task_id, title, completed=0, content=None, deadline=None):
+    def putTaskOnWindow(self, task_id, title, completed=0, content=None, deadline=None, page_pos = None):
+        if page_pos == None:
+            page_pos = len(self.widgets)
         from taskwidget import TaskWidget
-        task_widget = TaskWidget(self.db_controller, task_id, title, completed, content, deadline)
+        task_widget = TaskWidget(self.db_controller, task_id, title, completed, content, deadline, page_pos)
         task_widget.taskChecked.connect(lambda *_: 
             self.updateTaskStatus(task_id, task_widget.checkbox.isChecked()))
+        task_widget.taskDeleted.connect(lambda *_: 
+            self.removeWidget(task_widget.page_pos))
         self.widgets_layout.addWidget(task_widget)
     
     def deleteField(self, field, field_id):
@@ -198,10 +202,7 @@ class ProjectWindow(QMainWindow):
         field.deleteLater()
         from JSONHandler import json_handler
         self.db_controller.execute_query(json_handler.get_function("delete_project_widget_by_id"), [field_id])
-        """# COMMENTED THIS OUT, DO I REALLY NEED IT????
-        # update self.fields and self.widget_order
-        #self.fields = [sublist for sublist in self.fields if sublist[0] != field_id]
-        #self.widget_order = [sublist for sublist in self.widget_order if sublist[0] != field_id and sublist[1] != 'fields']"""
+        self.widgets.pop(field.page_pos)
     
     def rename_project(self):
         from edit_dialog import EditDialog
@@ -291,4 +292,37 @@ class ProjectWindow(QMainWindow):
             new_val = 1
         from JSONHandler import json_handler
         self.db_controller.execute_query(json_handler.get_function("update_task_completed"), [new_val, task_id])
-        # AM NOT UPDATING TASK LIST (do i need to do this???)
+    
+    def moveWidgetUp(self, widget):
+        # what if it's already at the top
+        from JSONHandler import json_handler
+        pid2 = widget.id
+        do2 = self.db_controller.execute_query(json_handler.get_function("get_display_order_by_id"), [pid2])[0][0]
+        (pid1, do1) = self.db_controller.execute_query(json_handler.get_function("get_widget_above"), [pid2, pid2])[0]
+
+        # update database
+        reset_do_query = json_handler.get_function("update_display_order")
+        self.db_controller.execute_query(reset_do_query, [do2, pid1])
+        self.db_controller.execute_query(reset_do_query, [do1, pid2])
+
+        # update widget page_order values
+        try:
+            widget_above = self.widgets_layout.itemAt(widget.page_pos - 1).widget()
+            widget_above.page_pos += 1
+        except Exception as e:
+            print("Issue setting page_pos of widget above")
+            print(e)
+        widget.page_pos -= 1
+
+        # reorder the widgets on page
+        self.widgets_layout.removeWidget(widget)
+        self.widgets_layout.insertWidget(widget.page_pos, widget) # page_pos not zero indexed?
+        print(self.widgets_layout.itemAt(widget.page_pos - 1).widget().page_pos)
+
+        return
+    
+    def moveWidgetDown(self, widget):
+        return
+    
+    def removeWidget(self, pos):
+        self.widgets.pop(pos)

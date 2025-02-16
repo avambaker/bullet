@@ -1,5 +1,5 @@
 {
-    "get_widgets_by_project": "\n    SELECT pwidget_id, widget_type, content\n    FROM project_widgets\n    WHERE project_id = ?\n    ORDER BY display_order;\n",
+    "get_widgets_by_project": "\nSELECT \n    pwidget_id, \n    widget_type, \n    content,\n    ROW_NUMBER() OVER (ORDER BY display_order) - 1 AS record_index\nFROM project_widgets\nWHERE project_id = ?\nORDER BY display_order;\n",
     "get_task_data_by_project": "\n    SELECT t.pwidget_id, t.title, t.completed, t.body, t.deadline\n    FROM project_widgets pw\n    LEFT JOIN task_data t ON pw.pwidget_id = t.pwidget_id\n    WHERE pw.project_id = ? AND pw.widget_type = 'Task'\n    ORDER BY pw.display_order;\n",
     "get_project_by_id": "SELECT * FROM projects WHERE project_id = ?",
     "update_pwidget_content_by_id": "UPDATE project_widgets SET content = ? WHERE pwidget_id = ?",
@@ -15,5 +15,9 @@
     "delete_task": "DELETE FROM project_widgets WHERE pwidget_id = ?",
     "update_title_in_task_data": "UPDATE task_data SET title = ? WHERE pwidget_id = ?",
     "update_body_in_task_data": "UPDATE task_data SET body = ? WHERE pwidget_id = ?",
-    "update_deadline_in_task_data": "UPDATE task_data SET deadline = ? WHERE pwidget_id = ?"
+    "update_deadline_in_task_data": "UPDATE task_data SET deadline = ? WHERE pwidget_id = ?",
+    "get_widget_above": "\nSELECT pwidget_id, display_order\nFROM project_widgets\nWHERE project_id = (SELECT project_id FROM project_widgets WHERE pwidget_id = ?)\nAND display_order < (SELECT display_order FROM project_widgets WHERE pwidget_id = ?)\nORDER BY display_order DESC\nLIMIT 1;\n",
+    "get_widget_below": "\nSELECT pwidget_id, display_order\nFROM project_widgets\nWHERE project_id = (SELECT project_id FROM project_widgets WHERE pwidget_id = ?)\nAND display_order > (SELECT display_order FROM project_widgets WHERE pwidget_id = ?)\nORDER BY display_order ASC\nLIMIT 1;\n",
+    "update_display_order": "UPDATE project_widgets SET display_order = ? WHERE pwidget_id = ?",
+    "get_display_order_by_id": "SELECT display_order FROM project_widgets WHERE pwidget_id = ?"
 }
