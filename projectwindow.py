@@ -166,10 +166,8 @@ class ProjectWindow(QMainWindow):
                 # add widget to the project page
                 if create_window.w_type == 'Task':
                     self.putTaskOnWindow(widget_id, create_window.w_content)
-                    self.widgets.append([widget_id, *params[1:], len(self.widgets)])
                 else:
                     self.putFieldOnWindow(widget_id, *params[1:], len(self.widgets))
-                    self.widgets.append([widget_id, *params[1:], len(self.widgets)])
     
     def putFieldOnWindow(self, field_id, field_type, content):
         from fieldwidget import FieldWidget
@@ -290,31 +288,6 @@ class ProjectWindow(QMainWindow):
         from JSONHandler import json_handler
         self.db_controller.execute_query(json_handler.get_function("update_task_completed"), [new_val, task_id])
     
-    def moveWidgetUp(self, widget):
-        # get location on page
-        from JSONHandler import json_handler
-        get_page_loc_query = json_handler.get_function("get_layout_location_of_widget")
-        page_loc = self.db_controller.execute_query(get_page_loc_query, [self.id, widget.id])[0][0]
-
-        # check if already at the top
-        if page_loc != 0: #or page_loc == self.widgets_layout.count() - 1:
-            
-            # get display order for self and widget above (as well as id)
-            pid2 = widget.id
-            do2 = self.db_controller.execute_query(json_handler.get_function("get_display_order_by_id"), [pid2])[0][0]
-            (pid1, do1) = self.db_controller.execute_query(json_handler.get_function("get_widget_above"), [pid2, pid2])[0]
-
-            # update database by swapping the display order of the two widgets
-            reset_do_query = json_handler.get_function("update_display_order")
-            self.db_controller.execute_query(reset_do_query, [do2, pid1])
-            self.db_controller.execute_query(reset_do_query, [do1, pid2])
-
-            # reorder the widgets on page
-            self.widgets_layout.removeWidget(widget)
-            try: self.widgets_layout.insertWidget(page_loc - 1, widget)
-            except Exception as e:
-                print(e)
-    
     def moveWidget(self, widget, y):
         # get location on page
         from JSONHandler import json_handler
@@ -343,9 +316,3 @@ class ProjectWindow(QMainWindow):
             try: self.widgets_layout.insertWidget(page_loc + y, widget)
             except Exception as e:
                 print(e)
-    
-    def moveWidgetDown(self, widget):
-        return
-    
-    def removeWidget(self, pos):
-        self.widgets.pop(pos)
