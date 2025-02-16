@@ -8,10 +8,9 @@ class FieldWidget(QWidget):
     moveUp = pyqtSignal()
     moveDown = pyqtSignal()
 
-    def __init__(self, field_id, field_type, content, page_pos = None, parent=None):
+    def __init__(self, field_id, field_type, content, parent=None):
         super().__init__(parent)
 
-        self.page_pos = page_pos
         self.id = field_id
 
         from JSONHandler import json_handler

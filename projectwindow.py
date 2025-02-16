@@ -68,13 +68,13 @@ class ProjectWindow(QMainWindow):
         for (pw_id, widget_type, content, page_pos) in self.widgets:
             if widget_type != 'Task':
                 try:
-                    self.putFieldOnWindow(pw_id, widget_type, content, page_pos)
+                    self.putFieldOnWindow(pw_id, widget_type, content)
                 except Exception as e:
                     print(f"Error adding widget {pw_id} to project {self.id}")
                     print(e)
             else:
                 try:
-                    self.putTaskOnWindow(*self.task_data[task_index], page_pos)
+                    self.putTaskOnWindow(*self.task_data[task_index])
                     task_index += 1
                 except Exception as e:
                     print(f"Error adding task {self.task_data[task_index]} to project {self.id}")
@@ -171,30 +171,28 @@ class ProjectWindow(QMainWindow):
                     self.putFieldOnWindow(widget_id, *params[1:], len(self.widgets))
                     self.widgets.append([widget_id, *params[1:], len(self.widgets)])
     
-    def putFieldOnWindow(self, field_id, field_type, content, page_pos = None):
-        if page_pos == None:
-            page_pos = len(self.widgets)
+    def putFieldOnWindow(self, field_id, field_type, content):
         from fieldwidget import FieldWidget
-        field = FieldWidget(field_id, field_type, content, page_pos)
+        field = FieldWidget(field_id, field_type, content)
         field.editClicked.connect(lambda *_, fw=field, fid=field_id, f=field_type, v=content: 
                             self.openFieldEditor(fw, fid, f, v))
         field.deleteClicked.connect(lambda *_, fw=field, fid=field_id: 
                             self.deleteField(fw, fid))
         field.moveUp.connect(lambda *_, fw=field: 
-                            self.moveWidgetUp(fw))
+                            self.moveWidget(fw, -1))
         field.moveDown.connect(lambda *_, fw=field: 
-                            self.moveWidgetDown(fw))
+                            self.moveWidget(fw, 1))
         self.widgets_layout.addWidget(field)
     
-    def putTaskOnWindow(self, task_id, title, completed=0, content=None, deadline=None, page_pos = None):
-        if page_pos == None:
-            page_pos = len(self.widgets)
+    def putTaskOnWindow(self, task_id, title, completed=0, content=None, deadline=None):
         from taskwidget import TaskWidget
-        task_widget = TaskWidget(self.db_controller, task_id, title, completed, content, deadline, page_pos)
+        task_widget = TaskWidget(self.db_controller, task_id, title, completed, content, deadline)
         task_widget.taskChecked.connect(lambda *_: 
             self.updateTaskStatus(task_id, task_widget.checkbox.isChecked()))
-        task_widget.taskDeleted.connect(lambda *_: 
-            self.removeWidget(task_widget.page_pos))
+        task_widget.moveTaskUp.connect(lambda *_, tw=task_widget: 
+                            self.moveWidget(tw, -1))
+        task_widget.moveTaskDown.connect(lambda *_, tw=task_widget: 
+                            self.moveWidget(tw, 1))
         self.widgets_layout.addWidget(task_widget)
     
     def deleteField(self, field, field_id):
@@ -202,7 +200,6 @@ class ProjectWindow(QMainWindow):
         field.deleteLater()
         from JSONHandler import json_handler
         self.db_controller.execute_query(json_handler.get_function("delete_project_widget_by_id"), [field_id])
-        self.widgets.pop(field.page_pos)
     
     def rename_project(self):
         from edit_dialog import EditDialog
@@ -294,32 +291,58 @@ class ProjectWindow(QMainWindow):
         self.db_controller.execute_query(json_handler.get_function("update_task_completed"), [new_val, task_id])
     
     def moveWidgetUp(self, widget):
-        # what if it's already at the top
+        # get location on page
         from JSONHandler import json_handler
-        pid2 = widget.id
-        do2 = self.db_controller.execute_query(json_handler.get_function("get_display_order_by_id"), [pid2])[0][0]
-        (pid1, do1) = self.db_controller.execute_query(json_handler.get_function("get_widget_above"), [pid2, pid2])[0]
+        get_page_loc_query = json_handler.get_function("get_layout_location_of_widget")
+        page_loc = self.db_controller.execute_query(get_page_loc_query, [self.id, widget.id])[0][0]
 
-        # update database
-        reset_do_query = json_handler.get_function("update_display_order")
-        self.db_controller.execute_query(reset_do_query, [do2, pid1])
-        self.db_controller.execute_query(reset_do_query, [do1, pid2])
+        # check if already at the top
+        if page_loc != 0: #or page_loc == self.widgets_layout.count() - 1:
+            
+            # get display order for self and widget above (as well as id)
+            pid2 = widget.id
+            do2 = self.db_controller.execute_query(json_handler.get_function("get_display_order_by_id"), [pid2])[0][0]
+            (pid1, do1) = self.db_controller.execute_query(json_handler.get_function("get_widget_above"), [pid2, pid2])[0]
 
-        # update widget page_order values
-        try:
-            widget_above = self.widgets_layout.itemAt(widget.page_pos - 1).widget()
-            widget_above.page_pos += 1
-        except Exception as e:
-            print("Issue setting page_pos of widget above")
-            print(e)
-        widget.page_pos -= 1
+            # update database by swapping the display order of the two widgets
+            reset_do_query = json_handler.get_function("update_display_order")
+            self.db_controller.execute_query(reset_do_query, [do2, pid1])
+            self.db_controller.execute_query(reset_do_query, [do1, pid2])
 
-        # reorder the widgets on page
-        self.widgets_layout.removeWidget(widget)
-        self.widgets_layout.insertWidget(widget.page_pos, widget) # page_pos not zero indexed?
-        print(self.widgets_layout.itemAt(widget.page_pos - 1).widget().page_pos)
+            # reorder the widgets on page
+            self.widgets_layout.removeWidget(widget)
+            try: self.widgets_layout.insertWidget(page_loc - 1, widget)
+            except Exception as e:
+                print(e)
+    
+    def moveWidget(self, widget, y):
+        # get location on page
+        from JSONHandler import json_handler
+        get_page_loc_query = json_handler.get_function("get_layout_location_of_widget")
+        page_loc = self.db_controller.execute_query(get_page_loc_query, [self.id, widget.id])[0][0]
 
-        return
+        # check that the move is valid
+        last_index = self.widgets_layout.count() - 1
+        if (page_loc, y) != (0, -1) and (page_loc, y) != (last_index, 1):
+            
+            # get display order for self and widget above (as well as id)
+            pid2 = widget.id
+            do2 = self.db_controller.execute_query(json_handler.get_function("get_display_order_by_id"), [pid2])[0][0]
+            if y == -1:
+                (pid1, do1) = self.db_controller.execute_query(json_handler.get_function("get_widget_above"), [pid2, pid2])[0]
+            if y == 1:
+                (pid1, do1) = self.db_controller.execute_query(json_handler.get_function("get_widget_below"), [pid2, pid2])[0]
+
+            # update database by swapping the display order of the two widgets
+            reset_do_query = json_handler.get_function("update_display_order")
+            self.db_controller.execute_query(reset_do_query, [do2, pid1])
+            self.db_controller.execute_query(reset_do_query, [do1, pid2])
+
+            # reorder the widgets on page
+            self.widgets_layout.removeWidget(widget)
+            try: self.widgets_layout.insertWidget(page_loc + y, widget)
+            except Exception as e:
+                print(e)
     
     def moveWidgetDown(self, widget):
         return

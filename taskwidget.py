@@ -7,9 +7,10 @@ from datetime import datetime
 
 class TaskWidget(QWidget):
     taskChecked = pyqtSignal()  # Custom signal for edit action
-    taskDeleted = pyqtSignal()
+    moveTaskUp = pyqtSignal()
+    moveTaskDown = pyqtSignal()
 
-    def __init__(self, databasecontroller, id, title, completed, body = "", deadline="", page_pos = None, parent=None):
+    def __init__(self, databasecontroller, id, title, completed, body = "", deadline="", parent=None):
         super().__init__(parent)
 
         self.id = id
@@ -17,7 +18,6 @@ class TaskWidget(QWidget):
         self.db_controller = databasecontroller
         self.body = body
         self.title = title
-        self.page_pos = page_pos
         
         from JSONHandler import json_handler
         self.styles = {"Task Title": json_handler.get_css("Task Title"),
@@ -96,12 +96,18 @@ class TaskWidget(QWidget):
         # Add actions
         self.edit_action = QAction("Edit Task", self)
         self.delete_action = QAction("Delete Task", self)
+        self.move_up_action = QAction("Move Up", self)
+        self.move_down_action = QAction("Move Down", self)
 
         self.edit_action.triggered.connect(self.edit)
         self.delete_action.triggered.connect(self.delete)
+        self.move_up_action.triggered.connect(self.moveTaskUp.emit)
+        self.move_down_action.triggered.connect(self.moveTaskDown.emit)
 
         self.context_menu.addAction(self.edit_action)
         self.context_menu.addAction(self.delete_action)
+        self.context_menu.addAction(self.move_up_action)
+        self.context_menu.addAction(self.move_down_action)
 
         # create deadline
         if self.deadline:

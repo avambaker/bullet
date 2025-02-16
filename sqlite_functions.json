@@ -19,5 +19,6 @@
     "get_widget_above": "\nSELECT pwidget_id, display_order\nFROM project_widgets\nWHERE project_id = (SELECT project_id FROM project_widgets WHERE pwidget_id = ?)\nAND display_order < (SELECT display_order FROM project_widgets WHERE pwidget_id = ?)\nORDER BY display_order DESC\nLIMIT 1;\n",
     "get_widget_below": "\nSELECT pwidget_id, display_order\nFROM project_widgets\nWHERE project_id = (SELECT project_id FROM project_widgets WHERE pwidget_id = ?)\nAND display_order > (SELECT display_order FROM project_widgets WHERE pwidget_id = ?)\nORDER BY display_order ASC\nLIMIT 1;\n",
     "update_display_order": "UPDATE project_widgets SET display_order = ? WHERE pwidget_id = ?",
-    "get_display_order_by_id": "SELECT display_order FROM project_widgets WHERE pwidget_id = ?"
+    "get_display_order_by_id": "SELECT display_order FROM project_widgets WHERE pwidget_id = ?",
+    "get_layout_location_of_widget": "\nSELECT record_index\nFROM (SELECT  pwidget_id, ROW_NUMBER() OVER (ORDER BY display_order) - 1 AS record_index\nFROM project_widgets\nWHERE project_id = ?\nORDER BY display_order ASC)\nWHERE pwidget_id = ?;\n"
 }

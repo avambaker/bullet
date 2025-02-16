@@ -109,12 +109,12 @@ conn.close()
 print("done")
 
 query = """
-SELECT pwidget_id, display_order
+SELECT record_index
+FROM (SELECT  pwidget_id, ROW_NUMBER() OVER (ORDER BY display_order) - 1 AS record_index
 FROM project_widgets
-WHERE project_id = (SELECT project_id FROM project_widgets WHERE pwidget_id = ?)
-AND display_order > (SELECT display_order FROM project_widgets WHERE pwidget_id = ?)
-ORDER BY display_order ASC
-LIMIT 1;
+WHERE project_id = ?
+ORDER BY display_order ASC)
+WHERE pwidget_id = ?;
 """
 
 def add_to_json(query, query_name):
@@ -126,4 +126,4 @@ def add_to_json(query, query_name):
         json.dump(data, json_file, indent=4)
     print("succesfully edited json")
 
-#add_to_json(query, "get_widget_below")
+#add_to_json(query, "get_layout_location_of_widget")
