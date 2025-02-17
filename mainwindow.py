@@ -61,10 +61,13 @@ class MainWindow(QMainWindow):
 
         # create menu bar widgets
         new_action = QAction(QIcon("icons/plus.png"), "New", self)
-        new_action.triggered.connect(self.new_project)
+        new_action.triggered.connect(self.newProject)
 
         refresh_action = QAction(QIcon("icons/database_refresh.png"), "Refresh", self)
         refresh_action.triggered.connect(self.refreshTable)
+
+        note_action = QAction(QIcon("icons/note.png"), "Create Note", self)
+        note_action.triggered.connect(self.newNote)
 
         search_label = QLabel("Search: ")
         self.search_bar = QLineEdit(self)
@@ -74,7 +77,7 @@ class MainWindow(QMainWindow):
         toolbar.setIconSize(QSize(13, 13))
 
         # add actions and widgets to a tool bar
-        for action in [new_action, refresh_action]:
+        for action in [new_action, refresh_action, note_action]:
             toolbar.addAction(action)
         toolbar.addSeparator()
         for widget in [search_label, self.search_bar]:
@@ -102,6 +105,7 @@ class MainWindow(QMainWindow):
         settings_menu = menu.addMenu("Settings")
 
         self.showMaximized()
+
     
     def refreshTable(self):
         self.model.select()
@@ -131,20 +135,24 @@ class MainWindow(QMainWindow):
         open_action = menu.addAction("Open")
 
         # Use a lambda function to pass arguments to the slot
-        open_action.triggered.connect(lambda: self.open_project_window(id.data()))
+        open_action.triggered.connect(lambda: self.openProjectWindow(id.data()))
 
         # Display the context menu at the cursor position
         menu.exec_(event.globalPos())
 
-    def open_project_window(self, project_id):
+    def openProjectWindow(self, project_id):
         from projectwindow import ProjectWindow
         # Instantiate ProjectWindow and pass project_id and db_controller
         self.project_window = ProjectWindow(self.db_controller, project_id)
         self.project_window.dataUpdated.connect(self.refreshTable)
         self.project_window.show()
     
-    def new_project(self):
+    def newProject(self):
         project_name, input = QInputDialog.getText(None, "New Project", "Project Title:")
         if input and project_name != "":
             self.db_controller.execute_query("INSERT INTO projects (title) VALUES (?)", [project_name])
             self.refreshTable()
+    
+    def newNote(self):
+        from note import NoteWidget
+        note = NoteWidget()
