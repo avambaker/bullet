@@ -1,35 +1,18 @@
-import sys
-
 from noteswindow import Ui_NotesWidget
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
-    QApplication,
     QWidget,
     QMessageBox,
 )
-from PyQt5.QtGui import QColor, QPalette
-from sqlalchemy import Column, Integer, String, create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy import Column, Integer, String
+from dbcontroller import db_controller
 
-Base = declarative_base()
-
-class Note(Base):
+class Note(db_controller.Base):
     __tablename__ = "note"
     id = Column(Integer, primary_key=True)
     text = Column(String(1000), nullable=False)
     x = Column(Integer, nullable=False, default=0)
     y = Column(Integer, nullable=False, default=0)
-
-engine = create_engine("sqlite:///notes.db")
-# Initalize the database if it is not already.
-# if not engine.dialect.has_table(engine, "note"):
-Base.metadata.create_all(engine)
-
-# Create a session to handle updates.
-Session = sessionmaker(bind=engine)
-session = Session()
-
-_ACTIVE_NOTES = {}
 
 
 class NoteWidget(QWidget, Ui_NotesWidget):
@@ -58,18 +41,17 @@ class NoteWidget(QWidget, Ui_NotesWidget):
         # Flags to store dragged-dropped
         self._drag_active = False
 
+
     def load(self):
         self.move(self.obj.x, self.obj.y)
         self.textEdit.setHtml(self.obj.text)
-        _ACTIVE_NOTES[self.obj.id] = self
 
     def save(self):
         self.obj.x = self.x()
         self.obj.y = self.y()
         self.obj.text = self.textEdit.toHtml()
-        session.add(self.obj)
-        session.commit()
-        _ACTIVE_NOTES[self.obj.id] = self
+        db_controller.session.add(self.obj)
+        db_controller.session.commit()
 
     def mousePressEvent(self, e):
         self.previous_pos = e.globalPos()
@@ -93,6 +75,6 @@ class NoteWidget(QWidget, Ui_NotesWidget):
             "Are you sure you want to delete this note?",
         )
         if result == QMessageBox.StandardButton.Yes:
-            session.delete(self.obj)
-            session.commit()
+            db_controller.session.delete(self.obj)
+            db_controller.session.commit()
             self.close()

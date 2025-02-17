@@ -8,16 +8,17 @@ from PyQt5.QtWidgets import QMainWindow, QDialog, QSpacerItem, QSizePolicy, QScr
 from PyQt5.QtGui import QIcon
 from PyQt5.QtSql import QSqlDatabase, QSqlTableModel
 
+from dbcontroller import db_controller
+
 class ProjectWindow(QMainWindow):
     dataUpdated = pyqtSignal()
 
-    def __init__(self, databasecontroller, id = None, parent=None):
+    def __init__(self, id = None, parent=None):
         """Build window with task table"""
         super().__init__(parent)
 
         # save variables
         self.id = id
-        self.db_controller = databasecontroller
 
         # get access to json
         from JSONHandler import json_handler
@@ -26,14 +27,14 @@ class ProjectWindow(QMainWindow):
         icon_button_style = json_handler.get_css("icon_button")
 
         # query data to set up page
-        (_, self.title, self.description, self.deadline) = self.db_controller.execute_query(json_handler.get_function("get_project_by_id"), [self.id])[0]
+        (_, self.title, self.description, self.deadline) = db_controller.execute_query(json_handler.get_function("get_project_by_id"), [self.id])[0]
         from JSONHandler import json_handler
         query = json_handler.get_function("get_widgets_by_project")
         assert query is not None, "SQL query not found in json_handler"
-        self.widgets = self.db_controller.execute_query(query, [self.id])
+        self.widgets = db_controller.execute_query(query, [self.id])
         if not self.widgets:
             self.widgets = []
-        self.task_data = self.db_controller.execute_query(json_handler.get_function("get_task_data_by_project"), (self.id,))
+        self.task_data = db_controller.execute_query(json_handler.get_function("get_task_data_by_project"), (self.id,))
         if not self.task_data:
             self.task_data = []
 
@@ -146,7 +147,7 @@ class ProjectWindow(QMainWindow):
             new_value = edit_window.new_val
             if new_value is not None and new_value != field_content:
                 from JSONHandler import json_handler
-                self.db_controller.execute_query(json_handler.get_function("update_pwidget_content_by_id"), [new_value, field_id])
+                db_controller.execute_query(json_handler.get_function("update_pwidget_content_by_id"), [new_value, field_id])
                 field_widget.setText(new_value)
     
     def openFieldCreator(self):
@@ -158,16 +159,16 @@ class ProjectWindow(QMainWindow):
                 # add to the database
                 params = [self.id, create_window.w_type, create_window.w_content]
                 insert_func = json_handler.get_function("insert_into_project_widgets")
-                self.db_controller.execute_query(insert_func, params)
+                db_controller.execute_query(insert_func, params)
 
                 # get the new pwidget_id
-                widget_id = self.db_controller.execute_query(json_handler.get_function("get_max_pwidget_id"))[0][0]
+                widget_id = db_controller.execute_query(json_handler.get_function("get_max_pwidget_id"))[0][0]
 
                 # add widget to the project page
                 if create_window.w_type == 'Task':
                     self.putTaskOnWindow(widget_id, create_window.w_content)
                 else:
-                    self.putFieldOnWindow(widget_id, *params[1:], len(self.widgets))
+                    self.putFieldOnWindow(widget_id, *params[1:])
     
     def putFieldOnWindow(self, field_id, field_type, content):
         from fieldwidget import FieldWidget
@@ -184,7 +185,7 @@ class ProjectWindow(QMainWindow):
     
     def putTaskOnWindow(self, task_id, title, completed=0, content=None, deadline=None):
         from taskwidget import TaskWidget
-        task_widget = TaskWidget(self.db_controller, task_id, title, completed, content, deadline)
+        task_widget = TaskWidget(task_id, title, completed, content, deadline)
         task_widget.taskChecked.connect(lambda *_: 
             self.updateTaskStatus(task_id, task_widget.checkbox.isChecked()))
         task_widget.moveTaskUp.connect(lambda *_, tw=task_widget: 
@@ -197,7 +198,7 @@ class ProjectWindow(QMainWindow):
         self.widgets_layout.removeWidget(field)
         field.deleteLater()
         from JSONHandler import json_handler
-        self.db_controller.execute_query(json_handler.get_function("delete_project_widget_by_id"), [field_id])
+        db_controller.execute_query(json_handler.get_function("delete_project_widget_by_id"), [field_id])
     
     def rename_project(self):
         from edit_dialog import EditDialog
@@ -207,7 +208,7 @@ class ProjectWindow(QMainWindow):
             from JSONHandler import json_handler
             if new_name != "" and new_name != self.title:
                 # Update the project title in the database
-                self.db_controller.execute_query(json_handler.get_function("rename_project_by_id"), [new_name, self.id])
+                db_controller.execute_query(json_handler.get_function("rename_project_by_id"), [new_name, self.id])
                 
                 # Change the window's title to the new name
                 self.setWindowTitle(new_name)
@@ -224,7 +225,7 @@ class ProjectWindow(QMainWindow):
             if new_description != self.description:
                 # Update the project title in the database
                 from JSONHandler import json_handler
-                self.db_controller.execute_query(json_handler.get_function("update_project_description"), [new_description, self.id])
+                db_controller.execute_query(json_handler.get_function("update_project_description"), [new_description, self.id])
                 
                 # Change the window's description qlabel to the new description
                 self.description_label.show()
@@ -242,7 +243,7 @@ class ProjectWindow(QMainWindow):
             if new_deadline != self.deadline:
                 # Update the project title in the database
                 from JSONHandler import json_handler
-                self.db_controller.execute_query(json_handler.get_function("update_project_deadline"), [new_deadline, self.id])
+                db_controller.execute_query(json_handler.get_function("update_project_deadline"), [new_deadline, self.id])
                 
                 # Change the window's description qlabel to the new description
                 self.project_deadline_label.show()
@@ -262,7 +263,7 @@ class ProjectWindow(QMainWindow):
         if reply == QMessageBox.Yes:
             # Proceed with deleting the project
             from JSONHandler import json_handler
-            self.db_controller.execute_query(json_handler.get_function("update_project_deadline"), ["", self.id])
+            db_controller.execute_query(json_handler.get_function("update_project_deadline"), ["", self.id])
             self.deadline = ""
             self.project_deadline_label.hide()
             self.dataUpdated.emit()
@@ -277,7 +278,7 @@ class ProjectWindow(QMainWindow):
         if reply == QMessageBox.Yes:
             # Proceed with deleting the project
             from JSONHandler import json_handler
-            self.db_controller.execute_query(json_handler.get_function("delete_project"), [self.id])
+            db_controller.execute_query(json_handler.get_function("delete_project"), [self.id])
             self.dataUpdated.emit()
             self.close()
     
@@ -286,13 +287,13 @@ class ProjectWindow(QMainWindow):
         if status == False:
             new_val = 1
         from JSONHandler import json_handler
-        self.db_controller.execute_query(json_handler.get_function("update_task_completed"), [new_val, task_id])
+        db_controller.execute_query(json_handler.get_function("update_task_completed"), [new_val, task_id])
     
     def moveWidget(self, widget, y):
         # get location on page
         from JSONHandler import json_handler
         get_page_loc_query = json_handler.get_function("get_layout_location_of_widget")
-        page_loc = self.db_controller.execute_query(get_page_loc_query, [self.id, widget.id])[0][0]
+        page_loc = db_controller.execute_query(get_page_loc_query, [self.id, widget.id])[0][0]
 
         # check that the move is valid
         last_index = self.widgets_layout.count() - 1
@@ -300,16 +301,16 @@ class ProjectWindow(QMainWindow):
             
             # get display order for self and widget above (as well as id)
             pid2 = widget.id
-            do2 = self.db_controller.execute_query(json_handler.get_function("get_display_order_by_id"), [pid2])[0][0]
+            do2 = db_controller.execute_query(json_handler.get_function("get_display_order_by_id"), [pid2])[0][0]
             if y == -1:
-                (pid1, do1) = self.db_controller.execute_query(json_handler.get_function("get_widget_above"), [pid2, pid2])[0]
+                (pid1, do1) = db_controller.execute_query(json_handler.get_function("get_widget_above"), [pid2, pid2])[0]
             if y == 1:
-                (pid1, do1) = self.db_controller.execute_query(json_handler.get_function("get_widget_below"), [pid2, pid2])[0]
+                (pid1, do1) = db_controller.execute_query(json_handler.get_function("get_widget_below"), [pid2, pid2])[0]
 
             # update database by swapping the display order of the two widgets
             reset_do_query = json_handler.get_function("update_display_order")
-            self.db_controller.execute_query(reset_do_query, [do2, pid1])
-            self.db_controller.execute_query(reset_do_query, [do1, pid2])
+            db_controller.execute_query(reset_do_query, [do2, pid1])
+            db_controller.execute_query(reset_do_query, [do1, pid2])
 
             # reorder the widgets on page
             self.widgets_layout.removeWidget(widget)

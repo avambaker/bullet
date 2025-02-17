@@ -4,18 +4,18 @@ from PyQt5.QtCore import Qt, pyqtSignal, QDateTime
 import os
 import sys
 from datetime import datetime
+from dbcontroller import db_controller
 
 class TaskWidget(QWidget):
     taskChecked = pyqtSignal()  # Custom signal for edit action
     moveTaskUp = pyqtSignal()
     moveTaskDown = pyqtSignal()
 
-    def __init__(self, databasecontroller, id, title, completed, body = "", deadline="", parent=None):
+    def __init__(self, id, title, completed, body = "", deadline="", parent=None):
         super().__init__(parent)
 
         self.id = id
         self.deadline = deadline
-        self.db_controller = databasecontroller
         self.body = body
         self.title = title
         
@@ -193,15 +193,15 @@ class TaskWidget(QWidget):
             else:
                 new_deadline = deadline_input.dateTime().toString("ddd MM/dd/yyyy h:mm AP")
             if new_title != self.title:
-                self.db_controller.execute_query(json_handler.get_function("update_title_in_task_data"), [new_title, self.id])
+                db_controller.execute_query(json_handler.get_function("update_title_in_task_data"), [new_title, self.id])
                 self.title = new_title
                 self.title_label.setText(self.title)
             if new_body != self.body:
-                self.db_controller.execute_query(json_handler.get_function("update_body_in_task_data"), [new_body, self.id])
+                db_controller.execute_query(json_handler.get_function("update_body_in_task_data"), [new_body, self.id])
                 self.body = new_body
                 self.body_label.setText(self.body)
             if new_deadline != self.deadline and new_deadline != "Sat 01/01/2000 12:00 AM": # null deadline
-                self.db_controller.execute_query(json_handler.get_function("update_deadline_in_task_data"), [new_deadline, self.id])
+                db_controller.execute_query(json_handler.get_function("update_deadline_in_task_data"), [new_deadline, self.id])
                 self.deadline = new_deadline
                 self.deadline_label.setText(f"Due: {self.deadline}")
                 self.deadline_label.show()
@@ -209,7 +209,7 @@ class TaskWidget(QWidget):
                 self.deadline_label.show()
             if not enable_deadline_input.isChecked():
                 self.deadline = ""
-                self.db_controller.execute_query(json_handler.get_function("update_deadline_in_task_data"), ["", self.id])
+                db_controller.execute_query(json_handler.get_function("update_deadline_in_task_data"), ["", self.id])
                 self.deadline_label.hide()
     
     def deadlineWarning(self, state):
@@ -227,6 +227,6 @@ class TaskWidget(QWidget):
         if reply == QMessageBox.Yes:
             # Proceed with deleting the project
             from JSONHandler import json_handler
-            self.db_controller.execute_query(json_handler.get_function("delete_task"), [self.id])
+            db_controller.execute_query(json_handler.get_function("delete_task"), [self.id])
             self.deleteLater()
             self.taskDeleted.emit()

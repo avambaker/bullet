@@ -11,6 +11,7 @@ import pandas as pd
 from datetime import date, datetime
 from pathlib import Path
 import json
+from dbcontroller import db_controller
 
 class ReadOnlySqlTableModel(QSqlTableModel):
     def flags(self, index):
@@ -25,10 +26,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(".bullet")
 
         # connect to database
-        from dbcontroller import DatabaseController
-        self.db_controller = DatabaseController()
-        self.db_controller.connect_to_database()
-        self.db_controller.execute_query("PRAGMA foreign_keys = ON;")
+        db_controller.connect_to_database()
+        db_controller.execute_query("PRAGMA foreign_keys = ON;")
 
         # Connect the table view to the model
         self.model = ReadOnlySqlTableModel(self)
@@ -104,6 +103,10 @@ class MainWindow(QMainWindow):
         view_menu = menu.addMenu("View")
         settings_menu = menu.addMenu("Settings")
 
+        # load notes
+        self.notes = []
+        self.loadNotes()
+
         self.showMaximized()
 
     
@@ -143,16 +146,22 @@ class MainWindow(QMainWindow):
     def openProjectWindow(self, project_id):
         from projectwindow import ProjectWindow
         # Instantiate ProjectWindow and pass project_id and db_controller
-        self.project_window = ProjectWindow(self.db_controller, project_id)
+        self.project_window = ProjectWindow(project_id)
         self.project_window.dataUpdated.connect(self.refreshTable)
         self.project_window.show()
     
     def newProject(self):
         project_name, input = QInputDialog.getText(None, "New Project", "Project Title:")
         if input and project_name != "":
-            self.db_controller.execute_query("INSERT INTO projects (title) VALUES (?)", [project_name])
+            db_controller.execute_query("INSERT INTO projects (title) VALUES (?)", [project_name])
             self.refreshTable()
     
     def newNote(self):
         from note import NoteWidget
-        note = NoteWidget()
+        self.notes.append(NoteWidget())
+    
+    def loadNotes(self):
+        from note import Note, NoteWidget
+        existing_notes = db_controller.session.query(Note).all()
+        for note in existing_notes:
+            self.notes.append(NoteWidget(note))

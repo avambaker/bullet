@@ -1,9 +1,24 @@
 from PyQt5.QtSql import QSqlDatabase, QSqlQuery
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, scoped_session, declarative_base
 
 class DatabaseController:
     def __init__(self, db_path='data.db'):
         self.db_path = db_path
         self.db = None
+
+        # Create a single database engine
+        engine = create_engine("sqlite:///notes.db")
+
+        # Create a session factory (binds all sessions to the same engine)
+        SessionFactory = sessionmaker(bind=engine)
+
+        # Scoped session (thread-safe, recommended for larger apps)
+        self.session = scoped_session(SessionFactory)
+
+        # Define base class for models
+        self.Base = declarative_base()
+
 
     def connect_to_database(self):
         if not self.db:
@@ -35,3 +50,5 @@ class DatabaseController:
         while sql_query.next():
             results.append([sql_query.value(i) for i in range(sql_query.record().count())])
         return results
+
+db_controller = DatabaseController()
