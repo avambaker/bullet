@@ -103,11 +103,13 @@ class MainWindow(QMainWindow):
         view_menu = menu.addMenu("View")
         settings_menu = menu.addMenu("Settings")
 
+        self.showMaximized()
+
         # load notes
         self.notes = []
-        self.loadNotes()
-
-        self.showMaximized()
+        from note import Note, NoteWidget
+        for note in db_controller.session.query(Note).all():
+            self.newNote(note)
 
     
     def refreshTable(self):
@@ -156,12 +158,6 @@ class MainWindow(QMainWindow):
             db_controller.execute_query("INSERT INTO projects (title) VALUES (?)", [project_name])
             self.refreshTable()
     
-    def newNote(self):
+    def newNote(self, note=None):
         from note import NoteWidget
-        self.notes.append(NoteWidget())
-    
-    def loadNotes(self):
-        from note import Note, NoteWidget
-        existing_notes = db_controller.session.query(Note).all()
-        for note in existing_notes:
-            self.notes.append(NoteWidget(note))
+        self.notes.append(NoteWidget(note))
