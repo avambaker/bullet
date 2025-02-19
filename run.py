@@ -28,7 +28,7 @@ if __name__ == '__main__':
     try:
         app = QApplication(sys.argv)
         app.setApplicationName(".bullet")
-        app.setWindowIcon(QIcon('assets/bullet_logo.png'))
+        app.setWindowIcon(QIcon('assets/bullet_logo.icns'))
         sys.exit(runApp())
     except Exception as e:
         logging.exception("An error occurred: %s", e)
