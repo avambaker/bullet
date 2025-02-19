@@ -308,9 +308,9 @@ class ProjectWindow(QMainWindow):
                 (pid1, do1) = db_controller.execute_query(json_handler.get_function("get_widget_below"), [pid2, pid2])[0]
 
             # update database by swapping the display order of the two widgets
-            reset_do_query = json_handler.get_function("update_display_order")
-            db_controller.execute_query(reset_do_query, [do2, pid1])
-            db_controller.execute_query(reset_do_query, [do1, pid2])
+            reset_DO_query = json_handler.get_function("update_display_order")
+            db_controller.execute_query(reset_DO_query, [do2, pid1])
+            db_controller.execute_query(reset_DO_query, [do1, pid2])
 
             # reorder the widgets on page
             self.widgets_layout.removeWidget(widget)
