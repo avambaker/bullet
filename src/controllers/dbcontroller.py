@@ -1,16 +1,20 @@
 import logging
+import os
 
 from PyQt5.QtSql import QSqlDatabase, QSqlQuery
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session, declarative_base
 
+from src.controllers.pathcontroller import resource_path
+
 class DatabaseController:
-    def __init__(self, db_path='data/projects.db'):
-        self.db_path = db_path
+    def __init__(self):
+        self.db_path = resource_path("data/projects.db")
         self.db = None
 
         # Create a single database engine
-        engine = create_engine("sqlite:///data/notes.db")
+        db_path = resource_path("data/notes.db")
+        engine = create_engine(f"sqlite:///{db_path}")
 
         # Create a session factory (binds all sessions to the same engine)
         SessionFactory = sessionmaker(bind=engine)
@@ -27,7 +31,8 @@ class DatabaseController:
             self.db = QSqlDatabase.addDatabase('QSQLITE')
             self.db.setDatabaseName(self.db_path)
             if not self.db.open():
-                raise Exception(f"Database Error: {self.db.lastError().text()}")
+                logging.info(f"File exists: {os.path.exists(self.db_path)}")
+                raise Exception(f"Unable to open data/projects.db: {self.db.lastError().text()}")
         return self.db
 
     def execute_query(self, query, params=None):

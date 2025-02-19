@@ -11,6 +11,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtSql import QSqlTableModel
 
 from src.controllers.dbcontroller import db_controller
+from src.controllers.pathcontroller import resource_path
 from src.windows.notewindow import Note
 from src.windows.projectwindow import ProjectWindow
 from src.windows.notewindow import NoteWidget
@@ -25,7 +26,7 @@ class MainWindow(QMainWindow):
         """Build window with task table"""
         super().__init__()
         # set up window
-        self.setWindowTitle(".bullet")
+        self.setWindowTitle("bullet")
 
         # connect to database
         db_controller.connect_to_database()
@@ -61,13 +62,13 @@ class MainWindow(QMainWindow):
         self.view.hideColumn(0) # hide the project id's
 
         # create menu bar widgets
-        new_action = QAction(QIcon("assets/icons/plus.png"), "New", self)
+        new_action = QAction(QIcon(resource_path("assets/icons/plus.png")), "New", self)
         new_action.triggered.connect(self.newProject)
 
-        refresh_action = QAction(QIcon("assets/icons/database_refresh.png"), "Refresh", self)
+        refresh_action = QAction(QIcon(resource_path("assets/icons/database_refresh.png")), "Refresh", self)
         refresh_action.triggered.connect(self.refreshTable)
 
-        note_action = QAction(QIcon("assets/icons/note.png"), "Create Note", self)
+        note_action = QAction(QIcon(resource_path("assets/icons/note.png")), "Create Note", self)
         note_action.triggered.connect(self.newNote)
 
         search_label = QLabel("Search: ")

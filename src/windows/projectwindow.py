@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import (
 
 from src.controllers.dbcontroller import db_controller
 from src.controllers.JSONcontroller import json_handler
+from src.controllers.pathcontroller import resource_path
 from src.dialogs.fieldedit import FieldEditor
 from src.dialogs.widgetcreate import WidgetCreator
 from src.widgets.fieldwidget import FieldWidget
@@ -92,7 +93,7 @@ class ProjectWindow(QMainWindow):
         
         # add a new field button
         add_button = QPushButton("")
-        add_button.setIcon(QIcon("assets/icons/plus.png"))
+        add_button.setIcon(QIcon(resource_path("assets/icons/plus.png")))
         add_button.setMinimumSize(QSize(45, 45))
         add_button.setIconSize(QSize(45, 45))
         add_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)

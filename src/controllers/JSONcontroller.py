@@ -1,11 +1,16 @@
 import json
 import os
 import logging
+import sys
+
+from pathcontroller import resource_path
 
 class JSONController:
     def __init__(self):
-        self.styles = self.load_json("src/lib/widget_styles.json")
-        self.functions = self.load_json("src/lib/sqlite_functions.json")
+        styles_path = self.resource_path("src/lib/widget_styles.json")
+        functions_path = self.resource_path("src/lib/sqlite_functions.json")
+        self.styles = self.load_json(styles_path)
+        self.functions = self.load_json(functions_path)
 
     def load_json(self, filepath):
         if not os.path.exists(filepath):
