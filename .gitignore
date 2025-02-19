@@ -7,3 +7,8 @@ __pycache__/
 
 # Ignore environment files
 .env
+
+# Ignore PyInstaller build artifacts
+/build/
+/dist/
+*.spec
