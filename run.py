@@ -8,9 +8,9 @@ from PyQt5.QtGui import QIcon
 
 from src.controllers.dbcontroller import db_controller
 from src.controllers.pathcontroller import resource_path
+from src.windows.mainwindow import MainWindow
 
 def runApp():
-        from src.windows.mainwindow import MainWindow
         window = MainWindow()
         app.exec_()
 

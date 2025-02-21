@@ -1,5 +1,8 @@
 import logging
 import os
+import appdirs
+import shutil
+import sys
 
 from PyQt5.QtSql import QSqlDatabase, QSqlQuery
 from sqlalchemy import create_engine
@@ -9,12 +12,14 @@ from src.controllers.pathcontroller import resource_path
 
 class DatabaseController:
     def __init__(self):
-        self.db_path = resource_path("data/projects.db")
         self.db = None
 
+        # Set the path to the SQLite database in the app data directory
+        self.projects_path = self.get_db_path("projects.db")
+
         # Create a single database engine
-        db_path = resource_path("data/notes.db")
-        engine = create_engine(f"sqlite:///{db_path}")
+        notes_path = self.get_db_path("notes.db")
+        engine = create_engine(f"sqlite:///{notes_path}")
 
         # Create a session factory (binds all sessions to the same engine)
         SessionFactory = sessionmaker(bind=engine)
@@ -25,14 +30,14 @@ class DatabaseController:
         # Define base class for models
         self.Base = declarative_base()
 
-
     def connect_to_database(self):
         if not self.db:
             self.db = QSqlDatabase.addDatabase('QSQLITE')
-            self.db.setDatabaseName(self.db_path)
+            self.db.setDatabaseName(self.projects_path)
             if not self.db.open():
-                logging.info(f"File exists: {os.path.exists(self.db_path)}")
-                raise Exception(f"Unable to open data/projects.db: {self.db.lastError().text()}")
+                logging.error(f"File exists: {os.path.exists(self.projects_path)}")
+                logging.error(f"Could not open projects.db file at path: {self.projects_path}")
+                raise Exception(self.db.lastError().text())
         return self.db
 
     def execute_query(self, query, params=None):
@@ -63,5 +68,29 @@ class DatabaseController:
             self.db.close()  # Close the PyQt5 database connection
             self.db = None
         self.session.remove()  # Close the SQLAlchemy session
+    
+    def get_db_path(self, name):
+        # Store the database in a persistent location
+        """if getattr(sys, 'frozen', True): # if running in development mode
+            return "data/" + name
+        else: # if running in packaged (app) mode"""
+        app_data_dir = appdirs.user_data_dir(appname="bullet", appauthor="AvaBaker")
+        os.makedirs(app_data_dir, exist_ok=True)  # Ensure the directory exists
+        default_db_path = resource_path("data/" + name)
+        logging.debug(f"Default DB Path Exists: {os.path.exists(default_db_path)}")
+        persistent_db_path = os.path.join(app_data_dir, name)
+        logging.info(f"Running in packaged mode. Default DB path: {default_db_path}, Persistent DB path: {persistent_db_path}")
+        self.copy_if_doesnt_exist(default_db_path, persistent_db_path)
+        return persistent_db_path
+    
+    def copy_if_doesnt_exist(self, default_db_path, persistent_db_path):
+        """Copies the default database to the persistent location if not already present (only in packaged mode)."""
+        # Only copy if the database doesn't exist in the persistent location
+        if not os.path.exists(persistent_db_path):
+            if os.path.exists(default_db_path):
+                shutil.copy(default_db_path, persistent_db_path)
+                logging.info(f"Copied default database to {persistent_db_path}")
+            else:
+                logging.warning(f"Default database file {default_db_path} not found!")
 
 db_controller = DatabaseController()

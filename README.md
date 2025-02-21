@@ -26,3 +26,5 @@ python run.py
 
 ### **Option 2: Running the Packaged Executable**
 If you don't want to install Python, download the latest prebuilt executable from the Releases page.
+
+sudo pyinstaller --onefile --windowed --icon=assets/bullet_logo.icns --strip --clean --add-data "assets:assets" --add-data "data:data" --add-data "src/lib/widget_styles.json:src/lib" --add-data "src/lib/sqlite_functions.json:src/lib" --exclude-module PyQt5.QtWebEngineWidgets --name="bullet" run.py

@@ -1,12 +1,13 @@
 from src.windows.noteui import Ui_NotesWidget
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (
     QWidget,
     QMessageBox,
     QColorDialog,
     QSizePolicy,
     QMenu,
-    QAction
+    QAction,
 )
 from sqlalchemy import Column, Integer, String
 from src.controllers.dbcontroller import db_controller
@@ -114,7 +115,7 @@ class NoteWidget(QWidget, Ui_NotesWidget):
             self.close()
     
     def changeColor(self):
-        color = QColorDialog.getColor()
+        color = QColorDialog.getColor(QColor(self.obj.background_color))
         if color.isValid():  # Ensure a valid color is chosen
             self.setStyleSheet(f"background-color: {color.name()};")
             self.textEdit.setStyleSheet(f"background-color: {color.name()};")
