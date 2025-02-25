@@ -71,17 +71,17 @@ class DatabaseController:
     
     def get_db_path(self, name):
         # Store the database in a persistent location
-        """if getattr(sys, 'frozen', True): # if running in development mode
+        if getattr(sys, 'frozen', False): # if running in a packaged (app) environment
+            app_data_dir = appdirs.user_data_dir(appname="bullet", appauthor="AvaBaker")
+            os.makedirs(app_data_dir, exist_ok=True)  # Ensure the directory exists
+            default_db_path = resource_path("data/" + name)
+            logging.debug(f"Default DB Path Exists: {os.path.exists(default_db_path)}")
+            persistent_db_path = os.path.join(app_data_dir, name)
+            logging.info(f"Running in packaged mode. Default DB path: {default_db_path}, Persistent DB path: {persistent_db_path}")
+            self.copy_if_doesnt_exist(default_db_path, persistent_db_path)
+            return persistent_db_path
+        else: # if running in development mode
             return "data/" + name
-        else: # if running in packaged (app) mode"""
-        app_data_dir = appdirs.user_data_dir(appname="bullet", appauthor="AvaBaker")
-        os.makedirs(app_data_dir, exist_ok=True)  # Ensure the directory exists
-        default_db_path = resource_path("data/" + name)
-        logging.debug(f"Default DB Path Exists: {os.path.exists(default_db_path)}")
-        persistent_db_path = os.path.join(app_data_dir, name)
-        logging.info(f"Running in packaged mode. Default DB path: {default_db_path}, Persistent DB path: {persistent_db_path}")
-        self.copy_if_doesnt_exist(default_db_path, persistent_db_path)
-        return persistent_db_path
     
     def copy_if_doesnt_exist(self, default_db_path, persistent_db_path):
         """Copies the default database to the persistent location if not already present (only in packaged mode)."""

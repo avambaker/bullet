@@ -1,0 +1,31 @@
+{
+  "config_dir": "/Users/avab/Documents/Ava's Stuff/Coding Projects/signature_work/.pyupdater",
+  "filename": "/Users/avab/Documents/Ava's Stuff/Coding Projects/signature_work/.pyupdater/config.pyu",
+  "count": 0,
+  "app_config": {
+    "APP_NAME": "bullet",
+    "CLIENT_CONFIG_PATH": [
+      "config",
+      "client_config.py"
+    ],
+    "COMPANY_NAME": "Ava Baker",
+    "PLUGIN_CONFIGS": {
+        "github": {
+        "user": "avambaker",
+        "repo": "bullet",
+        "token": "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"},
+    "UPDATE_PATCHES": true,
+    "MAX_DOWNLOAD_RETRIES": 3,
+    "HTTP_TIMEOUT": 30,
+    "UPDATE_URLS": [
+      "https://api.github.com/repos/avambaker/bullet/releases/latest"
+    ],
+    "DATA_DIR": "/Users/avab/Documents/Ava's Stuff/Coding Projects/signature_work"
+  },
+  "version_meta": {
+    "updates": {}
+  },
+  "py_repo_config": {
+    "patches": {}
+  }
+}
